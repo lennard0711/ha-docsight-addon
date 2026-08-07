@@ -11,6 +11,11 @@ DOCSight's author. It builds its own image on top of the upstream
 multi-arch support and add-on integration (options, host networking) are
 controlled here.
 
+> **Note:** This repository's packaging (Dockerfile, `config.yaml`,
+> `run.sh`, CI workflow, docs) was created with the help of an AI coding
+> assistant (Claude) and reviewed by me, Lennard Indlekofer, to the best of
+> my knowledge. If you spot an issue, please open an issue or PR.
+
 ## Adding this repository to Home Assistant
 
 1. In Home Assistant, go to **Settings → Add-ons → Add-on Store**.
