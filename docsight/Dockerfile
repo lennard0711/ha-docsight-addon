@@ -24,3 +24,10 @@ COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 ENTRYPOINT ["/run.sh"]
+# Docker resets CMD to empty as soon as a Dockerfile declares a new
+# ENTRYPOINT, even though the base image already had one -- it is not
+# carried over. Without this, run.sh's "$@" is empty and
+# `exec /entrypoint.sh "$@"` ends up calling `gosu appuser` with no
+# command, which just prints gosu's usage help and exits. Re-declaring the
+# upstream CMD here (verified via `docker inspect`) restores it.
+CMD ["python", "-m", "app.main"]
