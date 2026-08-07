@@ -1,0 +1,47 @@
+---
+slug: docsight
+name: "DOCSight"
+description: >-
+  Self-hosted DOCSIS evidence system for proving cable signal problems and
+  bad ISP performance. Unofficial community wrapper around itsDNNS/docsight.
+url: "https://github.com/itsDNNS/docsight"
+version: "v2026-08-07.1-addon.1"
+arch:
+  - aarch64
+  - amd64
+image: "ghcr.io/lennard0711/docsight"
+startup: services
+boot: auto
+# DOCSIS modems commonly expose their diagnostic UI on a separate subnet
+# (e.g. 192.168.100.1) that only the host's network stack can reach.
+host_network: true
+ports:
+  8765/tcp: 8765
+ports_description:
+  8765/tcp: "DOCSight web UI (only used for reference; with host_network the port is bound directly on the host)"
+options:
+  modem_type: "fritzbox"
+  modem_url: "http://192.168.178.1"
+  modem_user: ""
+  modem_password: ""
+  poll_interval: 900
+  log_level: "INFO"
+  mqtt_host: "core-mosquitto"
+  mqtt_port: 1883
+  mqtt_user: ""
+  mqtt_password: ""
+  admin_password: ""
+  demo_mode: false
+schema:
+  modem_type: "list(fritzbox|tc4400|ultrahub7|vodafone_station|ch7465|ch7465_play|cm1000|cm3000|cm3500|surfboard|sb6141|sb6183|sb6190|cm8200|hitron|hitron_coda_4680|sagemcom|f3896lg|sercom_dm1000|cgm4981|generic)"
+  modem_url: "url"
+  modem_user: "str"
+  modem_password: "password"
+  poll_interval: "int(60,14400)"
+  log_level: "list(DEBUG|INFO|WARNING|ERROR)"
+  mqtt_host: "str"
+  mqtt_port: "port"
+  mqtt_user: "str"
+  mqtt_password: "password"
+  admin_password: "password"
+  demo_mode: "bool"

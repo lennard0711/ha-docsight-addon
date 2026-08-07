@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Keep docsight/build.yaml's pinned upstream tag in sync with the Dockerfile's ARG BUILD_FROM",
+      "managerFilePatterns": ["^docsight/build\\.yaml$"],
+      "matchStrings": [
+        "ghcr\\.io/itsdnns/docsight:(?<currentValue>[^\"'\\s]+)"
+      ],
+      "depNameTemplate": "ghcr.io/itsdnns/docsight",
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["ghcr.io/itsdnns/docsight"],
+      "groupName": "docsight upstream image",
+      "commitMessageTopic": "DOCSight upstream image"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -e
+
+CONFIG=/data/options.json
+
+# Only the bootstrap options below are exported. DOCSight's ConfigManager
+# (app/config.py) resolves each of these keys as: env var > config.json >
+# default, checked on every read -- not just at container start. That means
+# whatever is set here always wins over the same setting in DOCSight's own
+# /settings UI. Everything DOCSight offers that is NOT in this list (theme,
+# language, notifications, Smart Capture, ISP name, timezone, ...) has no
+# env var equivalent at all and is safe to leave to the UI. See DOCS.md.
+export MODEM_TYPE=$(jq -r '.modem_type' "$CONFIG")
+export MODEM_URL=$(jq -r '.modem_url' "$CONFIG")
+export MODEM_USER=$(jq -r '.modem_user' "$CONFIG")
+export MODEM_PASSWORD=$(jq -r '.modem_password' "$CONFIG")
+export POLL_INTERVAL=$(jq -r '.poll_interval' "$CONFIG")
+export LOG_LEVEL=$(jq -r '.log_level' "$CONFIG")
+export MQTT_HOST=$(jq -r '.mqtt_host' "$CONFIG")
+export MQTT_PORT=$(jq -r '.mqtt_port' "$CONFIG")
+export MQTT_USER=$(jq -r '.mqtt_user' "$CONFIG")
+export MQTT_PASSWORD=$(jq -r '.mqtt_password' "$CONFIG")
+export ADMIN_PASSWORD=$(jq -r '.admin_password' "$CONFIG")
+export DEMO_MODE=$(jq -r '.demo_mode' "$CONFIG")
+
+# Hand off to the upstream image's own entrypoint (verified via
+# `docker inspect`): it fixes /data ownership as root, then execs
+# `gosu appuser "$@"`. "$@" here is the CMD inherited from the upstream
+# image (python -m app.main), since this Dockerfile does not override CMD.
+exec /entrypoint.sh "$@"
