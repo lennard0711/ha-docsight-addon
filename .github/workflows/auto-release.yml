@@ -1,0 +1,89 @@
+name: Auto-release on upstream bump
+
+# Completes the Renovate flow so merging the upstream-bump PR is the only
+# manual step: when a push to main changes the pinned upstream tag (i.e. a
+# merged Renovate PR), this workflow bumps config.yaml's version to
+# <new-tag>-addon.1, prepends a CHANGELOG entry, commits, creates the
+# GitHub release, and dispatches the build workflow.
+#
+# The build is dispatched directly (workflow_dispatch) instead of relying
+# on the release event: releases created with the default GITHUB_TOKEN
+# intentionally never fire other workflows' `release` triggers.
+#
+# Manual add-on-only releases (addon.N bumps without an upstream change)
+# are unaffected: the guard below skips whenever config.yaml's version
+# already matches the pinned upstream tag.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docsight/Dockerfile"
+      - "docsight/build.yaml"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare pinned upstream tag with add-on version
+        id: detect
+        run: |
+          upstream=$(grep -oP 'ARG BUILD_FROM=ghcr\.io/itsdnns/docsight:\K\S+' docsight/Dockerfile)
+          current=$(grep -oP '^version:\s*"\K[^"]+' docsight/config.yaml)
+          echo "Pinned upstream: ${upstream} / current add-on version: ${current}"
+          if [ -z "$upstream" ] || [ -z "$current" ]; then
+            echo "::error::Could not extract upstream tag or add-on version"
+            exit 1
+          fi
+          if [[ "$current" == "${upstream}-addon."* ]]; then
+            echo "Add-on version already tracks this upstream tag -- nothing to do."
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+            echo "upstream=${upstream}" >> "$GITHUB_OUTPUT"
+            echo "new_version=${upstream}-addon.1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump config.yaml and CHANGELOG
+        if: steps.detect.outputs.bump == 'true'
+        env:
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+          UPSTREAM: ${{ steps.detect.outputs.upstream }}
+        run: |
+          sed -i "s|^version: \".*\"|version: \"${NEW_VERSION}\"|" docsight/config.yaml
+          awk -v ver="$NEW_VERSION" -v up="$UPSTREAM" '
+            NR==1 { print; print ""; print "## " ver; print "";
+                    print "- Update to upstream DOCSight `" up "` (automated release)."; next }
+            { print }
+          ' docsight/CHANGELOG.md > /tmp/changelog.md
+          mv /tmp/changelog.md docsight/CHANGELOG.md
+          git diff --stat
+
+      - name: Commit and push
+        if: steps.detect.outputs.bump == 'true'
+        env:
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898024+github-actions[bot]@users.noreply.github.com"
+          git add docsight/config.yaml docsight/CHANGELOG.md
+          git commit -m "Auto-bump add-on version to ${NEW_VERSION}"
+          git push
+
+      - name: Create release and dispatch build
+        if: steps.detect.outputs.bump == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+          UPSTREAM: ${{ steps.detect.outputs.upstream }}
+        run: |
+          gh release create "$NEW_VERSION" \
+            --title "$NEW_VERSION" \
+            --notes "Update to upstream DOCSight ${UPSTREAM} (automated release)."
+          gh workflow run build.yml -f version="$NEW_VERSION"

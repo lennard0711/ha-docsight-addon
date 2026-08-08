@@ -21,7 +21,7 @@
       "groupName": "docsight upstream image",
       "commitMessageTopic": "DOCSight upstream image",
       "prBodyNotes": [
-        "**This only bumps the pinned upstream tag in `Dockerfile`/`build.yaml`.** It does NOT update `docsight/config.yaml`'s `version` field, and merging this PR does not publish a new image (that only happens on a GitHub Release). After merging, still manually: 1) bump `version` in `docsight/config.yaml` to `<new-upstream-tag>-addon.1`, 2) add a `docsight/CHANGELOG.md` entry, 3) create a matching GitHub Release to trigger the publish workflow. Also check upstream's `app/drivers/__init__.py` for newly registered modem drivers -- the `modem_type` list in `docsight/config.yaml`'s schema is hardcoded and needs new drivers added by hand."
+        "**Merging this PR is all that's needed:** the `auto-release.yml` workflow then bumps `docsight/config.yaml`'s version to `<new-tag>-addon.1`, prepends a CHANGELOG entry, creates the GitHub Release, and dispatches the image build automatically. One thing to still check by hand: upstream's `app/drivers/__init__.py` for newly registered modem drivers -- the `modem_type` list in `docsight/config.yaml`'s schema is hardcoded and needs new drivers added manually."
       ]
     }
   ]

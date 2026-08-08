@@ -8,11 +8,21 @@ name: Build and publish
 on:
   release:
     types: [published]
+  # Used by auto-release.yml: releases created with the default GITHUB_TOKEN
+  # deliberately don't fire other workflows' `release` triggers, so the
+  # auto-release workflow dispatches this one directly instead.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Add-on version tag to build (e.g. v2026-08-07.1-addon.1)"
+        required: true
+        type: string
 
 env:
   IMAGE_NAME: docsight
   # Single source of truth for both the prepare matrix and the manifest job.
   ARCHITECTURES: '["amd64", "aarch64"]'
+  VERSION: ${{ github.event.release.tag_name || inputs.version }}
 
 permissions:
   contents: read
@@ -52,9 +62,9 @@ jobs:
           # first tag. `latest` additionally feeds the builder's
           # registry-cache lookup (cache-from ...:latest) on future builds.
           image-tags: |
-            ${{ github.event.release.tag_name }}
+            ${{ env.VERSION }}
             latest
-          version: ${{ github.event.release.tag_name }}
+          version: ${{ env.VERSION }}
           context: docsight
           push: "true"
           cosign: "false"
@@ -75,7 +85,7 @@ jobs:
           architectures: ${{ env.ARCHITECTURES }}
           image-name: ${{ env.IMAGE_NAME }}
           image-tags: |
-            ${{ github.event.release.tag_name }}
+            ${{ env.VERSION }}
             latest
           cosign: "false"
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}

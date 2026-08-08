@@ -37,8 +37,15 @@ DOCSight's own `/settings` UI, and why `host_network` is required.
   `run.sh`, docs, translations).
 - `.github/workflows/build.yml` — builds and publishes a multi-arch
   (`aarch64` + `amd64`) image to GHCR whenever a GitHub release is
-  published.
-- `renovate.json` — keeps the pinned upstream DOCSight image tag current.
+  published (or when dispatched by the auto-release workflow).
+- `.github/workflows/auto-release.yml` — after a merged upstream bump,
+  automatically bumps the add-on version, updates the changelog, creates
+  the release, and dispatches the build — merging the Renovate PR is the
+  only manual step.
+- `.github/workflows/smoke-test.yml` — builds and boots the image on every
+  push/PR, checks `/health` and the backup persistence path.
+- `renovate.json` — watches for new upstream DOCSight image tags and opens
+  update PRs.
 
 ## License
 
