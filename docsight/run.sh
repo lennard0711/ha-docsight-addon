@@ -23,6 +23,18 @@ export MQTT_PASSWORD=$(jq -r '.mqtt_password' "$CONFIG")
 export ADMIN_PASSWORD=$(jq -r '.admin_password' "$CONFIG")
 export DEMO_MODE=$(jq -r '.demo_mode' "$CONFIG")
 
+# The Dockerfile symlinks /backup -> /data/backups so DOCSight's scheduled
+# backup feature persists in /data. But `os.makedirs("/backup", exist_ok=True)`
+# fails on a *dangling* symlink: mkdir() doesn't follow a symlink's final
+# path component, and exist_ok only swallows that via a real, resolvable
+# directory at the target. So the directory has to exist before DOCSight's
+# own bootstrap ever runs -- create and own it now, as root, rather than
+# relying on entrypoint.sh's /data chown (which is skipped on restarts once
+# /data's own top-level ownership already looks correct, which would leave
+# a freshly created subdirectory root-owned and unwritable by appuser).
+mkdir -p /data/backups
+chown 1000:1000 /data/backups 2>/dev/null || true
+
 # Hand off to the upstream image's own entrypoint (verified via
 # `docker inspect`): it fixes /data ownership as root, then execs
 # `gosu appuser "$@"`. "$@" here is the CMD inherited from the upstream

@@ -10,6 +10,9 @@
   the browser and never touches `/backup`.
 - Smoke test now exercises this end-to-end: triggers a scheduled backup via
   the API and checks the file actually lands on the mounted `/data` volume.
+  (It caught a real bug during development: `os.makedirs("/backup", ...)`
+  fails on a dangling symlink on the very first run, before `/data/backups`
+  exists yet. Fixed by having `run.sh` create and `chown` it upfront.)
 
 ## v2026-08-07.1-addon.4
 
