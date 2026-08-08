@@ -33,7 +33,7 @@ export DEMO_MODE=$(jq -r '.demo_mode' "$CONFIG")
 # /data's own top-level ownership already looks correct, which would leave
 # a freshly created subdirectory root-owned and unwritable by appuser).
 mkdir -p /data/backups
-chown 1000:1000 /data/backups 2>/dev/null || true
+chown appuser:appuser /data/backups 2>/dev/null || true
 
 # Hand off to the upstream image's own entrypoint (verified via
 # `docker inspect`): it fixes /data ownership as root, then execs

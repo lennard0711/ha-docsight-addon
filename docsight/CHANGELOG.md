@@ -1,5 +1,14 @@
 # Changelog
 
+## v2026-08-07.1-addon.6
+
+- Housekeeping release, no functional changes to DOCSight itself:
+  `run.sh` now chowns `/data/backups` by user name (`appuser`) instead of
+  hardcoded UID 1000, stale comment in `config.yaml` about manually setting
+  the backup path removed (the symlink handles it since addon.5), MQTT
+  disable edge case documented in DOCS.md, CI now also tags images as
+  `latest`.
+
 ## v2026-08-07.1-addon.5
 
 - Symlink `/backup` to `/data/backups` in the Dockerfile, so DOCSight's

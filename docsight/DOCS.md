@@ -96,6 +96,12 @@ from a separate VLAN or a router downstream of the modem.
 running and that `mqtt_user`/`mqtt_password` match a valid Mosquitto user --
 leave `mqtt_host` blank if you don't want MQTT enabled at all.
 
+**Cleared `mqtt_host` but MQTT is still connecting:** an empty add-on option
+means the environment variable is unset, and DOCSight then falls back to
+whatever is stored in its own `config.json` -- so if you ever saved an MQTT
+host through DOCSight's `/settings` UI, that value takes over. Clear the
+MQTT host in DOCSight's `/settings` as well to fully disable it.
+
 **Changed a modem/MQTT setting in DOCSight's UI and it didn't stick:** that's
 expected for any of the options listed above under "Configured via the
 add-on Options tab" -- change it in the add-on configuration instead, then
