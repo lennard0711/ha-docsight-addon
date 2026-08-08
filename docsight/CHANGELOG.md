@@ -1,5 +1,15 @@
 # Changelog
 
+## v2026-08-07.1-addon.4
+
+- Revert the `/backup` mapping added in addon.3. Checked Supervisor's
+  source: `map: - type: backup` bind-mounts the single, shared Home
+  Assistant system-backup folder used for real `.tar` snapshots, not an
+  isolated per-add-on location -- not the right place for an unrelated
+  app's own export files. `/data` is the actually-intended mechanism
+  (Supervisor already includes it automatically in every HA backup); see
+  DOCS.md for pointing DOCSight's own backup path at `/data/backups`.
+
 ## v2026-08-07.1-addon.3
 
 - Map DOCSight's built-in backup/export path (`/backup`) to Home

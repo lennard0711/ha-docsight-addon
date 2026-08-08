@@ -56,6 +56,25 @@ reaching that subnet. `host_network: true` puts the container directly on
 the host's network stack (the same as HAOS itself), so it can reach the
 modem exactly as the host can.
 
+## Persisting DOCSight's own backups/exports
+
+DOCSight has its own backup/export feature (in its `/settings` UI), which by
+default writes `.tar.gz` files to `/backup` inside the container. This
+add-on intentionally does **not** map that to anything -- `/backup` as a
+Supervisor mapping type points at Home Assistant's single, shared
+system-backup folder (the same one your full HA snapshots live in), which
+isn't the right place for an unrelated app's own export files.
+
+Instead, persistence for DOCSight's backups comes for free through `/data`:
+it's the add-on's own isolated volume, and Supervisor already includes it
+automatically in every full or per-add-on backup you take of Home Assistant
+itself -- no extra mapping needed. To make DOCSight actually use it, go into
+DOCSight's own `/settings` and set its backup path to `/data/backups`
+(create the folder via a manual backup once, or through DOCSight's UI if it
+offers that). Without this change, anything DOCSight backs up to the default
+`/backup` path only lives in the container's writable layer and is lost on
+the next image update.
+
 ## Troubleshooting
 
 **Can't reach the modem / "connection refused" errors polling `modem_url`:**

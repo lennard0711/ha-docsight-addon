@@ -5,7 +5,7 @@ description: >-
   Self-hosted DOCSIS evidence system for proving cable signal problems and
   bad ISP performance. Unofficial community wrapper around itsDNNS/docsight.
 url: "https://github.com/itsDNNS/docsight"
-version: "v2026-08-07.1-addon.3"
+version: "v2026-08-07.1-addon.4"
 arch:
   - aarch64
   - amd64
@@ -19,13 +19,15 @@ ports:
   8765/tcp: 8765
 ports_description:
   8765/tcp: "DOCSight web UI (only used for reference; with host_network the port is bound directly on the host)"
-# DOCSight's built-in backup/export feature (app/modules/backup) writes to
-# /backup by default, which isn't env-configurable. Without this mapping,
-# anything exported through DOCSight's own UI would only live in the
-# container's writable layer and be lost on the next image update.
-map:
-  - type: backup
-    read_only: false
+# No `map: - type: backup` here on purpose: that mapping bind-mounts the
+# single, shared Home Assistant system-backup folder (the exact one
+# Supervisor stores its own .tar snapshots in) into the container --
+# appropriate for add-ons that manage HA's own backups, not for stashing
+# an unrelated app's internal export files in there. DOCSight's own
+# backup/export feature already gets covered for free: point it (in
+# DOCSight's own /settings, not here) at /data/backups, since /data is
+# the add-on's own isolated volume that Supervisor already includes
+# automatically in every full/partial Home Assistant backup. See DOCS.md.
 # /health is a plain, unauthenticated endpoint (app/web.py) so this works
 # without admin_password being set.
 watchdog: "http://[HOST]:[PORT:8765]/health"
