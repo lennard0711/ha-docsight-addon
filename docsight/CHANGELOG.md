@@ -1,5 +1,14 @@
 # Changelog
 
+## v2026-08-07.1-addon.3
+
+- Map DOCSight's built-in backup/export path (`/backup`) to Home
+  Assistant's real backup folder, so exports created through DOCSight's
+  own UI actually persist instead of being lost on the next image update.
+- Add `watchdog` pointed at DOCSight's `/health` endpoint, so Supervisor
+  restarts the add-on if it crashes or hangs.
+- Add `webui` so the add-on's info page has a direct "Open Web UI" button.
+
 ## v2026-08-07.1-addon.2
 
 - Fix container failing to start with only gosu's usage help printed to

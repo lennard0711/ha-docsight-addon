@@ -1,0 +1,76 @@
+name: Smoke test
+
+# Builds the image and actually starts it (with a fake Supervisor
+# options.json, demo_mode enabled so no real modem is needed) on every push
+# and PR touching the add-on, polling /health. This is meant to catch
+# entrypoint/CMD-level breakage -- e.g. the container silently only
+# printing gosu's usage help instead of starting -- before it ever reaches
+# a tagged release.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docsight/**"
+      - ".github/workflows/smoke-test.yml"
+  pull_request:
+    paths:
+      - "docsight/**"
+      - ".github/workflows/smoke-test.yml"
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image (amd64, no push)
+        run: docker build -t docsight-smoke:test docsight
+
+      - name: Write fake Supervisor options.json
+        run: |
+          mkdir -p /tmp/docsight-data
+          cat > /tmp/docsight-data/options.json <<'JSON'
+          {
+            "modem_type": "fritzbox",
+            "modem_url": "http://192.168.178.1",
+            "modem_user": "",
+            "modem_password": "",
+            "poll_interval": 900,
+            "log_level": "INFO",
+            "mqtt_host": "",
+            "mqtt_port": 1883,
+            "mqtt_user": "",
+            "mqtt_password": "",
+            "admin_password": "",
+            "demo_mode": true
+          }
+          JSON
+
+      - name: Start container
+        run: |
+          docker run -d --name docsight-smoke \
+            -p 8765:8765 \
+            -v /tmp/docsight-data:/data \
+            docsight-smoke:test
+
+      - name: Wait for /health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:8765/health; then
+              echo
+              echo "Healthy after $((i * 2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Container never became healthy within 60s"
+          exit 1
+
+      - name: Dump container logs
+        if: always()
+        run: docker logs docsight-smoke || true
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f docsight-smoke || true

@@ -17,7 +17,10 @@
     {
       "matchPackageNames": ["ghcr.io/itsdnns/docsight"],
       "groupName": "docsight upstream image",
-      "commitMessageTopic": "DOCSight upstream image"
+      "commitMessageTopic": "DOCSight upstream image",
+      "prBodyNotes": [
+        "**This only bumps the pinned upstream tag in `Dockerfile`/`build.yaml`.** It does NOT update `docsight/config.yaml`'s `version` field, and merging this PR does not publish a new image (that only happens on a GitHub Release). After merging, still manually: 1) bump `version` in `docsight/config.yaml` to `<new-upstream-tag>-addon.1`, 2) add a `docsight/CHANGELOG.md` entry, 3) create a matching GitHub Release to trigger the publish workflow."
+      ]
     }
   ]
 }
