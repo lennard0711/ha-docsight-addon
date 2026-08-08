@@ -68,20 +68,11 @@ DOCSight has two different things both called "backup":
   `backup_path`, which defaults to `/backup` and isn't configurable via
   environment variable, only in DOCSight's own `/settings`.
 
-For the scheduled case, this add-on's `Dockerfile` symlinks `/backup` to
-`/data/backups` at build time, so it lands in the add-on's own persistent
-`/data` volume -- which Supervisor already includes automatically in every
-full or per-add-on Home Assistant backup -- instead of the container's
-writable layer, where it would be lost on the next image update. This is
-transparent: DOCSight still thinks it's writing to `/backup`, the kernel
-resolves the symlink. You don't need to change anything in DOCSight's
-`/settings` for this to work.
-
-(We intentionally don't map `/backup` to Home Assistant's own Supervisor
-backup mapping type for this -- that points at the single, shared folder
-your full HA system snapshots live in, not an isolated per-add-on location.
-See this repo's commit history if you're curious why that was tried and
-reverted.)
+This add-on redirects that scheduled-backup path into the add-on's own
+persistent storage, which is automatically included in every full or
+per-add-on Home Assistant backup you take -- so scheduled backups survive
+image updates. You don't need to change anything in DOCSight's `/settings`
+for this to work.
 
 ## Troubleshooting
 

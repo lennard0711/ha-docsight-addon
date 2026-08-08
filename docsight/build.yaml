@@ -1,12 +1,7 @@
 ---
-# We inherit from the upstream DOCSight image rather than a Home Assistant
-# base image, so build_from does not point at ghcr.io/hassio-addons/base
-# variants -- it points at the upstream DOCSight tag for each arch.
-#
-# Verified via `docker manifest inspect` against
-# ghcr.io/itsdnns/docsight:v2026-08-07.1: upstream publishes amd64, arm64
-# (aarch64) and armv7 platform manifests for every tag, so no from-source
-# build is needed for Raspberry Pi 5 / HAOS aarch64.
+# Builds on top of the upstream DOCSight image rather than a Home
+# Assistant base image. It's a multi-arch manifest (amd64, aarch64,
+# armv7), so both architectures point at the same tag.
 build_from:
   aarch64: "ghcr.io/itsdnns/docsight:v2026-08-07.1"
   amd64: "ghcr.io/itsdnns/docsight:v2026-08-07.1"

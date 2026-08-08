@@ -1,16 +1,14 @@
 name: Build and publish
 
-# Uses the modern reusable sub-actions from home-assistant/builder
-# (the old monolithic `home-assistant/builder@master` action is deprecated).
-# Pinned to the same commit the sub-actions themselves use internally for
-# cross-referencing (tag 2026.06.0) rather than floating on `master`.
+# Uses the reusable sub-actions from home-assistant/builder, pinned to a
+# fixed commit (2026.06.0) rather than floating on `master`.
 
 on:
   release:
     types: [published]
-  # Used by auto-release.yml: releases created with the default GITHUB_TOKEN
-  # deliberately don't fire other workflows' `release` triggers, so the
-  # auto-release workflow dispatches this one directly instead.
+  # Releases created with the default GITHUB_TOKEN don't trigger other
+  # workflows' `release` events, so auto-release.yml dispatches this
+  # workflow directly instead.
   workflow_dispatch:
     inputs:
       version:
@@ -58,9 +56,8 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
           image: ${{ matrix.image }}
-          # Version first: the manifest job looks up per-arch images by the
-          # first tag. `latest` additionally feeds the builder's
-          # registry-cache lookup (cache-from ...:latest) on future builds.
+          # Version first: the manifest job looks up per-arch images by
+          # the first tag. `latest` also feeds the build cache.
           image-tags: |
             ${{ env.VERSION }}
             latest

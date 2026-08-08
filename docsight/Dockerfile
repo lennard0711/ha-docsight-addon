@@ -1,18 +1,13 @@
-# Own Dockerfile on top of the upstream DOCSight image, so multi-arch
-# support and tooling (jq for options.json parsing) are controlled here
-# instead of depending on whatever upstream happens to publish.
+# Builds on top of the upstream DOCSight image so multi-arch support and
+# tooling (jq for options.json parsing) are controlled here rather than
+# depending on whatever upstream publishes.
 #
-# Verified upstream facts (see repo README for how these were checked):
-#   - Base OS: Debian (trixie) -> apt-get, not apk
-#   - jq is NOT preinstalled upstream
-#   - Upstream ENTRYPOINT: /entrypoint.sh, CMD: ["python", "-m", "app.main"]
-#     entrypoint.sh fixes /data ownership as root, then execs
-#     `gosu appuser "$@"` -- it must stay in the chain, not be replaced.
-# BUILD_FROM is injected by the Home Assistant builder from build.yaml's
-# build_from map. Both aarch64 and amd64 point at the same upstream tag
-# because ghcr.io/itsdnns/docsight is itself a multi-arch manifest list
-# (verified: it publishes amd64, arm64 and armv7 for this tag) -- buildx
-# resolves the correct platform variant automatically.
+# Upstream base is Debian, ENTRYPOINT is /entrypoint.sh (fixes /data
+# ownership as root, then execs `gosu appuser "$@"`).
+#
+# BUILD_FROM is injected by the Home Assistant builder from build.yaml.
+# aarch64 and amd64 point at the same tag because the upstream image is
+# itself a multi-arch manifest list; buildx picks the right platform.
 ARG BUILD_FROM=ghcr.io/itsdnns/docsight:v2026-08-07.1
 FROM ${BUILD_FROM}
 
@@ -20,27 +15,18 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends jq \
     && rm -rf /var/lib/apt/lists/*
 
-# DOCSight's scheduled/automatic backup feature (app/modules/backup) writes
-# to backup_path, which defaults to /backup and isn't env-configurable.
-# /backup doesn't exist in the upstream image, so this symlink redirects it
-# into /data -- the add-on's own persistent volume, which Home Assistant
-# already includes automatically in every full/partial backup -- instead of
-# the container's writable layer. This is transparent to DOCSight: it's a
-# plain filesystem symlink, resolved by the kernel, not something the app
-# needs to know about. (The manual "download backup" button is unaffected
-# either way -- it streams straight to the browser, never touching
-# /backup.) Verified via app/modules/backup/routes.py and Supervisor's own
-# source -- see repo README/DOCS.md.
+# DOCSight's scheduled backup feature writes to /backup by default, which
+# isn't configurable via environment variable. Symlinking it into /data
+# (the add-on's persistent volume, included in Home Assistant backups)
+# means backups survive image updates without any settings change. The
+# manual "download backup" button is unaffected -- it streams straight to
+# the browser and never touches /backup.
 RUN rm -rf /backup && ln -s /data/backups /backup
 
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 ENTRYPOINT ["/run.sh"]
-# Docker resets CMD to empty as soon as a Dockerfile declares a new
-# ENTRYPOINT, even though the base image already had one -- it is not
-# carried over. Without this, run.sh's "$@" is empty and
-# `exec /entrypoint.sh "$@"` ends up calling `gosu appuser` with no
-# command, which just prints gosu's usage help and exits. Re-declaring the
-# upstream CMD here (verified via `docker inspect`) restores it.
+# Declaring a new ENTRYPOINT resets any CMD inherited from the base image,
+# so it has to be re-declared here for run.sh's "$@" to receive it.
 CMD ["python", "-m", "app.main"]

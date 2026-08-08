@@ -1,14 +1,12 @@
 name: Auto-release on upstream bump
 
-# Completes the Renovate flow so merging the upstream-bump PR is the only
-# manual step: when a push to main changes the pinned upstream tag (i.e. a
-# merged Renovate PR), this workflow bumps config.yaml's version to
-# <new-tag>-addon.1, prepends a CHANGELOG entry, commits, creates the
-# GitHub release, and dispatches the build workflow.
+# On a merged Renovate PR (pinned upstream tag changed on main), bumps
+# config.yaml's version to <new-tag>-addon.1, adds a CHANGELOG entry,
+# creates the GitHub release, and dispatches the build -- so merging the
+# PR is the only manual step.
 #
-# The build is dispatched directly (workflow_dispatch) instead of relying
-# on the release event: releases created with the default GITHUB_TOKEN
-# intentionally never fire other workflows' `release` triggers.
+# The build is dispatched directly since releases created with the default
+# GITHUB_TOKEN don't trigger other workflows' `release` events.
 #
 # Manual add-on-only releases (addon.N bumps without an upstream change)
 # are unaffected: the guard below skips whenever config.yaml's version

@@ -19,17 +19,8 @@ ports:
   8765/tcp: 8765
 ports_description:
   8765/tcp: "DOCSight web UI (only used for reference; with host_network the port is bound directly on the host)"
-# No `map: - type: backup` here on purpose: that mapping bind-mounts the
-# single, shared Home Assistant system-backup folder (the exact one
-# Supervisor stores its own .tar snapshots in) into the container --
-# appropriate for add-ons that manage HA's own backups, not for stashing
-# an unrelated app's internal export files in there. Instead, the
-# Dockerfile symlinks /backup -> /data/backups, so DOCSight's scheduled
-# backups land in the add-on's own isolated /data volume, which Supervisor
-# already includes automatically in every full/partial Home Assistant
-# backup -- no user action needed. See DOCS.md.
-# /health is a plain, unauthenticated endpoint (app/web.py) so this works
-# without admin_password being set.
+# DOCSight's scheduled backups persist via a /data symlink set up in the
+# Dockerfile -- no `map: backup` needed here. See DOCS.md.
 watchdog: "http://[HOST]:[PORT:8765]/health"
 webui: "http://[HOST]:[PORT:8765]/"
 options:
