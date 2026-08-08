@@ -5,7 +5,7 @@
     {
       "customType": "regex",
       "description": "Keep docsight/build.yaml's pinned upstream tag in sync with the Dockerfile's ARG BUILD_FROM",
-      "managerFilePatterns": ["^docsight/build\\.yaml$"],
+      "managerFilePatterns": ["docsight/build.yaml"],
       "matchStrings": [
         "ghcr\\.io/itsdnns/docsight:(?<currentValue>[^\"'\\s]+)"
       ],
