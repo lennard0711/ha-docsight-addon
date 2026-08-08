@@ -56,24 +56,32 @@ reaching that subnet. `host_network: true` puts the container directly on
 the host's network stack (the same as HAOS itself), so it can reach the
 modem exactly as the host can.
 
-## Persisting DOCSight's own backups/exports
+## DOCSight's own backups/exports
 
-DOCSight has its own backup/export feature (in its `/settings` UI), which by
-default writes `.tar.gz` files to `/backup` inside the container. This
-add-on intentionally does **not** map that to anything -- `/backup` as a
-Supervisor mapping type points at Home Assistant's single, shared
-system-backup folder (the same one your full HA snapshots live in), which
-isn't the right place for an unrelated app's own export files.
+DOCSight has two different things both called "backup":
 
-Instead, persistence for DOCSight's backups comes for free through `/data`:
-it's the add-on's own isolated volume, and Supervisor already includes it
-automatically in every full or per-add-on backup you take of Home Assistant
-itself -- no extra mapping needed. To make DOCSight actually use it, go into
-DOCSight's own `/settings` and set its backup path to `/data/backups`
-(create the folder via a manual backup once, or through DOCSight's UI if it
-offers that). Without this change, anything DOCSight backs up to the default
-`/backup` path only lives in the container's writable layer and is lost on
-the next image update.
+- **The "download backup" button** in its UI streams a `.tar.gz` straight to
+  your browser as a normal file download. It never touches the container's
+  filesystem beyond a temp file it cleans up immediately -- nothing to
+  configure, works the same as running DOCSight anywhere else.
+- **Scheduled/automatic backups** (if enabled) are written server-side to
+  `backup_path`, which defaults to `/backup` and isn't configurable via
+  environment variable, only in DOCSight's own `/settings`.
+
+For the scheduled case, this add-on's `Dockerfile` symlinks `/backup` to
+`/data/backups` at build time, so it lands in the add-on's own persistent
+`/data` volume -- which Supervisor already includes automatically in every
+full or per-add-on Home Assistant backup -- instead of the container's
+writable layer, where it would be lost on the next image update. This is
+transparent: DOCSight still thinks it's writing to `/backup`, the kernel
+resolves the symlink. You don't need to change anything in DOCSight's
+`/settings` for this to work.
+
+(We intentionally don't map `/backup` to Home Assistant's own Supervisor
+backup mapping type for this -- that points at the single, shared folder
+your full HA system snapshots live in, not an isolated per-add-on location.
+See this repo's commit history if you're curious why that was tried and
+reverted.)
 
 ## Troubleshooting
 

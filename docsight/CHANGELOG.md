@@ -1,5 +1,16 @@
 # Changelog
 
+## v2026-08-07.1-addon.5
+
+- Symlink `/backup` to `/data/backups` in the Dockerfile, so DOCSight's
+  scheduled/automatic backup feature (which isn't env-configurable and
+  defaults to writing to `/backup`) persists in the add-on's own `/data`
+  volume without needing anything changed in DOCSight's `/settings`. The
+  manual "download backup" button is unaffected -- it streams straight to
+  the browser and never touches `/backup`.
+- Smoke test now exercises this end-to-end: triggers a scheduled backup via
+  the API and checks the file actually lands on the mounted `/data` volume.
+
 ## v2026-08-07.1-addon.4
 
 - Revert the `/backup` mapping added in addon.3. Checked Supervisor's

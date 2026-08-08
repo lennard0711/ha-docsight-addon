@@ -2,10 +2,12 @@ name: Smoke test
 
 # Builds the image and actually starts it (with a fake Supervisor
 # options.json, demo_mode enabled so no real modem is needed) on every push
-# and PR touching the add-on, polling /health. This is meant to catch
-# entrypoint/CMD-level breakage -- e.g. the container silently only
-# printing gosu's usage help instead of starting -- before it ever reaches
-# a tagged release.
+# and PR touching the add-on: polls /health (catches entrypoint/CMD-level
+# breakage -- e.g. the container silently only printing gosu's usage help
+# instead of starting), then triggers a scheduled backup and checks it
+# actually shows up on the host-mounted /data volume (catches the
+# /backup -> /data/backups symlink silently not working). All before any
+# of this ever reaches a tagged release.
 
 on:
   push:
@@ -66,6 +68,22 @@ jobs:
           done
           echo "::error::Container never became healthy within 60s"
           exit 1
+
+      - name: Trigger a scheduled backup and check it persists via /data
+        run: |
+          curl -fsS -X POST http://localhost:8765/api/backup/scheduled
+          echo
+          found=""
+          for i in $(seq 1 10); do
+            found="$(find /tmp/docsight-data/backups -maxdepth 1 -name 'docsight_backup_*.tar.gz' 2>/dev/null)"
+            [ -n "$found" ] && break
+            sleep 1
+          done
+          if [ -z "$found" ]; then
+            echo "::error::No backup file appeared under /tmp/docsight-data/backups -- the /backup -> /data/backups symlink may be broken"
+            exit 1
+          fi
+          echo "Found backup on the host-mounted /data volume: $found"
 
       - name: Dump container logs
         if: always()

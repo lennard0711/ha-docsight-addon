@@ -20,6 +20,19 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends jq \
     && rm -rf /var/lib/apt/lists/*
 
+# DOCSight's scheduled/automatic backup feature (app/modules/backup) writes
+# to backup_path, which defaults to /backup and isn't env-configurable.
+# /backup doesn't exist in the upstream image, so this symlink redirects it
+# into /data -- the add-on's own persistent volume, which Home Assistant
+# already includes automatically in every full/partial backup -- instead of
+# the container's writable layer. This is transparent to DOCSight: it's a
+# plain filesystem symlink, resolved by the kernel, not something the app
+# needs to know about. (The manual "download backup" button is unaffected
+# either way -- it streams straight to the browser, never touching
+# /backup.) Verified via app/modules/backup/routes.py and Supervisor's own
+# source -- see repo README/DOCS.md.
+RUN rm -rf /backup && ln -s /data/backups /backup
+
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
