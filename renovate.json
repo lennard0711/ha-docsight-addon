@@ -16,6 +16,8 @@
   "packageRules": [
     {
       "matchPackageNames": ["ghcr.io/itsdnns/docsight"],
+      "description": "DOCSight tags (v2026-08-07.1) aren't semver -- without an explicit versioning scheme, Renovate's default docker versioning would silently ignore or missort them and never propose updates. Applies to both the Dockerfile manager and the build.yaml custom manager.",
+      "versioning": "regex:^v(?<major>\\d{4})-(?<minor>\\d{2})-(?<patch>\\d{2})\\.(?<build>\\d+)$",
       "groupName": "docsight upstream image",
       "commitMessageTopic": "DOCSight upstream image",
       "prBodyNotes": [
