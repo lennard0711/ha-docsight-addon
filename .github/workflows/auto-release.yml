@@ -1,9 +1,14 @@
 name: Auto-release on upstream bump
 
 # On a merged Renovate PR (pinned upstream tag changed on main), bumps
-# config.yaml's version to <new-tag>-addon.1, adds a CHANGELOG entry,
-# creates the GitHub release, and dispatches the build -- so merging the
-# PR is the only manual step.
+# that add-on's config.yaml version to <new-tag>-addon.1, adds a
+# CHANGELOG entry, creates the GitHub release, and dispatches the build --
+# so merging the PR is the only manual step.
+#
+# The release tag is "<addon-slug>/<version>" (e.g.
+# "docsight/v2026-08-07.1-addon.7") so build.yml knows which add-on and
+# image a given release is for -- each add-on in this repo has its own
+# GHCR image.
 #
 # The build is dispatched directly since releases created with the default
 # GITHUB_TOKEN don't trigger other workflows' `release` events.
@@ -11,6 +16,9 @@ name: Auto-release on upstream bump
 # Manual add-on-only releases (addon.N bumps without an upstream change)
 # are unaffected: the guard below skips whenever config.yaml's version
 # already matches the pinned upstream tag.
+#
+# Matrix jobs run one at a time (max-parallel: 1) so two add-ons bumped in
+# the same push can't race each other's commit+push.
 
 on:
   push:
@@ -18,6 +26,8 @@ on:
     paths:
       - "docsight/Dockerfile"
       - "docsight/build.yaml"
+      - "speedtest-tracker/Dockerfile"
+      - "speedtest-tracker/build.yaml"
 
 permissions:
   contents: write
@@ -26,17 +36,24 @@ permissions:
 jobs:
   auto-release:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        addon: [docsight, speedtest-tracker]
     steps:
       - uses: actions/checkout@v7
 
       - name: Compare pinned upstream tag with add-on version
         id: detect
+        env:
+          ADDON: ${{ matrix.addon }}
         run: |
-          upstream=$(grep -oP 'ARG BUILD_FROM=ghcr\.io/itsdnns/docsight:\K\S+' docsight/Dockerfile)
-          current=$(grep -oP '^version:\s*"\K[^"]+' docsight/config.yaml)
-          echo "Pinned upstream: ${upstream} / current add-on version: ${current}"
+          upstream=$(grep -oP '^ARG BUILD_FROM=.+:\K\S+$' "${ADDON}/Dockerfile")
+          current=$(grep -oP '^version:\s*"\K[^"]+' "${ADDON}/config.yaml")
+          echo "[$ADDON] Pinned upstream: ${upstream} / current add-on version: ${current}"
           if [ -z "$upstream" ] || [ -z "$current" ]; then
-            echo "::error::Could not extract upstream tag or add-on version"
+            echo "::error::Could not extract upstream tag or add-on version for ${ADDON}"
             exit 1
           fi
           if [[ "$current" == "${upstream}-addon."* ]]; then
@@ -53,25 +70,28 @@ jobs:
         env:
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
           UPSTREAM: ${{ steps.detect.outputs.upstream }}
+          ADDON: ${{ matrix.addon }}
         run: |
-          sed -i "s|^version: \".*\"|version: \"${NEW_VERSION}\"|" docsight/config.yaml
+          sed -i "s|^version: \".*\"|version: \"${NEW_VERSION}\"|" "${ADDON}/config.yaml"
           awk -v ver="$NEW_VERSION" -v up="$UPSTREAM" '
             NR==1 { print; print ""; print "## " ver; print "";
-                    print "- Update to upstream DOCSight `" up "` (automated release)."; next }
+                    print "- Update to upstream `" up "` (automated release)."; next }
             { print }
-          ' docsight/CHANGELOG.md > /tmp/changelog.md
-          mv /tmp/changelog.md docsight/CHANGELOG.md
+          ' "${ADDON}/CHANGELOG.md" > /tmp/changelog.md
+          mv /tmp/changelog.md "${ADDON}/CHANGELOG.md"
           git diff --stat
 
       - name: Commit and push
         if: steps.detect.outputs.bump == 'true'
         env:
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+          ADDON: ${{ matrix.addon }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898024+github-actions[bot]@users.noreply.github.com"
-          git add docsight/config.yaml docsight/CHANGELOG.md
-          git commit -m "Auto-bump add-on version to ${NEW_VERSION}"
+          git add "${ADDON}/config.yaml" "${ADDON}/CHANGELOG.md"
+          git commit -m "Auto-bump ${ADDON} version to ${NEW_VERSION}"
+          git pull --rebase
           git push
 
       - name: Create release and dispatch build
@@ -80,8 +100,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
           UPSTREAM: ${{ steps.detect.outputs.upstream }}
+          ADDON: ${{ matrix.addon }}
         run: |
-          gh release create "$NEW_VERSION" \
-            --title "$NEW_VERSION" \
-            --notes "Update to upstream DOCSight ${UPSTREAM} (automated release)."
-          gh workflow run build.yml -f version="$NEW_VERSION"
+          gh release create "${ADDON}/${NEW_VERSION}" \
+            --title "${ADDON} ${NEW_VERSION}" \
+            --notes "Update to upstream ${UPSTREAM} (automated release)."
+          gh workflow run build.yml -f addon="$ADDON" -f version="$NEW_VERSION"

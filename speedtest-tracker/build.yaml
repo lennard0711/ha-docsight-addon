@@ -1,0 +1,14 @@
+---
+# Builds on top of the LinuxServer.io speedtest-tracker image, itself a
+# multi-arch manifest (amd64, aarch64), so both architectures point at
+# the same tag.
+build_from:
+  aarch64: "ghcr.io/linuxserver/speedtest-tracker:v1.14.7-ls165"
+  amd64: "ghcr.io/linuxserver/speedtest-tracker:v1.14.7-ls165"
+args:
+  BUILD_FROM: "ghcr.io/linuxserver/speedtest-tracker:v1.14.7-ls165"
+labels:
+  org.opencontainers.image.title: "Speedtest Tracker"
+  org.opencontainers.image.description: "Unofficial Home Assistant add-on wrapper for alexjustesen/speedtest-tracker (LinuxServer.io build)"
+  org.opencontainers.image.source: "https://github.com/alexjustesen/speedtest-tracker"
+  org.opencontainers.image.licenses: "MIT"

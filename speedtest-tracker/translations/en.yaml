@@ -1,0 +1,36 @@
+configuration:
+  app_url:
+    name: App URL
+    description: >-
+      The URL you'll actually reach this add-on at, e.g.
+      http://homeassistant.local:8087. Used for links in notifications.
+  timezone:
+    name: Timezone
+    description: Container and display timezone, e.g. Europe/Berlin.
+  admin_name:
+    name: Admin name
+    description: >-
+      Initial admin account name. Only used once, when the account is
+      created on first start.
+  admin_email:
+    name: Admin email
+    description: >-
+      Initial admin account email. Only used once, when the account is
+      created on first start.
+  admin_password:
+    name: Admin password
+    description: >-
+      Initial admin account password. Only used once, when the account is
+      created on first start -- set this before the first start.
+  speedtest_schedule:
+    name: Speedtest schedule (cron)
+    description: >-
+      Cron expression for automatic tests, e.g. "0 */6 * * *" for every 6
+      hours. Leave blank to disable scheduled tests.
+  speedtest_servers:
+    name: Speedtest servers
+    description: >-
+      Comma-separated Ookla server IDs to test against. Leave blank to
+      auto-select the nearest server.
+network:
+  80/tcp: Speedtest Tracker web UI

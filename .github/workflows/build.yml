@@ -2,6 +2,11 @@ name: Build and publish
 
 # Uses the reusable sub-actions from home-assistant/builder, pinned to a
 # fixed commit (2026.06.0) rather than floating on `master`.
+#
+# Two add-ons live in this repo, each with its own GHCR image, so a
+# release's git tag is "<addon-slug>/<version>" (e.g.
+# "docsight/v2026-08-07.1-addon.7") to say which one it's for. The addon
+# slug also doubles as its build context / folder name.
 
 on:
   release:
@@ -11,16 +16,21 @@ on:
   # workflow directly instead.
   workflow_dispatch:
     inputs:
+      addon:
+        description: "Which add-on to build"
+        required: true
+        type: choice
+        options:
+          - docsight
+          - speedtest-tracker
       version:
         description: "Add-on version tag to build (e.g. v2026-08-07.1-addon.1)"
         required: true
         type: string
 
 env:
-  IMAGE_NAME: docsight
   # Single source of truth for both the prepare matrix and the manifest job.
   ARCHITECTURES: '["amd64", "aarch64"]'
-  VERSION: ${{ github.event.release.tag_name || inputs.version }}
 
 permissions:
   contents: read
@@ -30,14 +40,29 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      addon: ${{ steps.parse.outputs.addon }}
+      version: ${{ steps.parse.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+
+      - id: parse
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          if [ -n "$tag" ]; then
+            addon="${tag%%/*}"
+            version="${tag#*/}"
+          else
+            addon="${{ inputs.addon }}"
+            version="${{ inputs.version }}"
+          fi
+          echo "addon=$addon" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - id: matrix
         uses: home-assistant/builder/actions/prepare-multi-arch-matrix@4de35182ce1e329181bffcbcc84d33db5e2c7e10 # 2026.06.0
         with:
           architectures: ${{ env.ARCHITECTURES }}
-          image-name: ${{ env.IMAGE_NAME }}
+          image-name: ${{ steps.parse.outputs.addon }}
 
   build:
     needs: prepare
@@ -59,16 +84,16 @@ jobs:
           # Version first: the manifest job looks up per-arch images by
           # the first tag. `latest` also feeds the build cache.
           image-tags: |
-            ${{ env.VERSION }}
+            ${{ needs.prepare.outputs.version }}
             latest
-          version: ${{ env.VERSION }}
-          context: docsight
+          version: ${{ needs.prepare.outputs.version }}
+          context: ${{ needs.prepare.outputs.addon }}
           push: "true"
           cosign: "false"
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}
 
   publish-manifest:
-    needs: build
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -80,9 +105,9 @@ jobs:
         uses: home-assistant/builder/actions/publish-multi-arch-manifest@4de35182ce1e329181bffcbcc84d33db5e2c7e10 # 2026.06.0
         with:
           architectures: ${{ env.ARCHITECTURES }}
-          image-name: ${{ env.IMAGE_NAME }}
+          image-name: ${{ needs.prepare.outputs.addon }}
           image-tags: |
-            ${{ env.VERSION }}
+            ${{ needs.prepare.outputs.version }}
             latest
           cosign: "false"
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}

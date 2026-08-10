@@ -1,23 +1,27 @@
 name: Smoke test
 
-# Builds the image and actually starts it (with a fake Supervisor
-# options.json, demo_mode enabled so no real modem is needed) on every push
-# and PR touching the add-on: polls /health, then triggers a scheduled
-# backup and checks it lands on the host-mounted /data volume.
+# Builds each add-on's image and actually starts it (with a fake
+# Supervisor options.json) on every push and PR touching either add-on:
+# checks it reaches a healthy state and does one add-on-specific
+# functional check. Both jobs run unconditionally on any push/PR matching
+# either path -- simpler than per-job path filtering, and cheap enough
+# not to matter.
 
 on:
   push:
     branches: [main]
     paths:
       - "docsight/**"
+      - "speedtest-tracker/**"
       - ".github/workflows/smoke-test.yml"
   pull_request:
     paths:
       - "docsight/**"
+      - "speedtest-tracker/**"
       - ".github/workflows/smoke-test.yml"
 
 jobs:
-  smoke-test:
+  docsight-smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -88,3 +92,79 @@ jobs:
       - name: Clean up
         if: always()
         run: docker rm -f docsight-smoke || true
+
+  speedtest-tracker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image (amd64, no push)
+        run: docker build -t speedtest-tracker-smoke:test speedtest-tracker
+
+      - name: Write fake Supervisor options.json
+        run: |
+          mkdir -p /tmp/speedtest-tracker-data
+          cat > /tmp/speedtest-tracker-data/options.json <<'JSON'
+          {
+            "app_url": "http://homeassistant.local:8087",
+            "timezone": "Europe/Berlin",
+            "admin_name": "Admin",
+            "admin_email": "admin@example.com",
+            "admin_password": "smoke-test-password",
+            "speedtest_schedule": "0 */6 * * *",
+            "speedtest_servers": ""
+          }
+          JSON
+
+      - name: Start container
+        run: |
+          docker run -d --name speedtest-tracker-smoke \
+            -p 8087:80 \
+            -v /tmp/speedtest-tracker-data:/config \
+            speedtest-tracker-smoke:test
+
+      - name: Wait for /api/healthcheck
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:8087/api/healthcheck; then
+              echo
+              echo "Healthy after $((i * 2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Container never became healthy within 60s"
+          exit 1
+
+      - name: Verify the admin account was created with the configured credentials
+        run: |
+          docker exec speedtest-tracker-smoke php -r '
+            $db = new PDO("sqlite:/config/database.sqlite");
+            $row = $db->query("SELECT email FROM users WHERE email = \"admin@example.com\"")->fetch();
+            if (!$row) { fwrite(STDERR, "admin user not found\n"); exit(1); }
+            echo "admin user found: " . $row["email"] . PHP_EOL;
+          '
+
+      - name: Verify APP_KEY persists across a restart
+        run: |
+          key_before="$(cat /tmp/speedtest-tracker-data/.app_key)"
+          docker restart speedtest-tracker-smoke
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:8087/api/healthcheck && break
+            sleep 2
+            if [ "$i" = 30 ]; then echo "::error::never became healthy after restart"; docker logs speedtest-tracker-smoke; exit 1; fi
+          done
+          key_after="$(cat /tmp/speedtest-tracker-data/.app_key)"
+          if [ "$key_before" != "$key_after" ]; then
+            echo "::error::APP_KEY changed across a restart -- would break existing encrypted data"
+            exit 1
+          fi
+          echo "APP_KEY persisted across restart"
+
+      - name: Dump container logs
+        if: always()
+        run: docker logs speedtest-tracker-smoke || true
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f speedtest-tracker-smoke || true

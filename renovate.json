@@ -11,6 +11,16 @@
       ],
       "depNameTemplate": "ghcr.io/itsdnns/docsight",
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Keep speedtest-tracker/build.yaml's pinned upstream tag in sync with the Dockerfile's ARG BUILD_FROM",
+      "managerFilePatterns": ["speedtest-tracker/build.yaml"],
+      "matchStrings": [
+        "ghcr\\.io/linuxserver/speedtest-tracker:(?<currentValue>[^\"'\\s]+)"
+      ],
+      "depNameTemplate": "ghcr.io/linuxserver/speedtest-tracker",
+      "datasourceTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -22,6 +32,16 @@
       "commitMessageTopic": "DOCSight upstream image",
       "prBodyNotes": [
         "**Merging this PR is all that's needed:** the `auto-release.yml` workflow then bumps `docsight/config.yaml`'s version to `<new-tag>-addon.1`, prepends a CHANGELOG entry, creates the GitHub Release, and dispatches the image build automatically. One thing to still check by hand: upstream's `app/drivers/__init__.py` for newly registered modem drivers -- the `modem_type` list in `docsight/config.yaml`'s schema is hardcoded and needs new drivers added manually."
+      ]
+    },
+    {
+      "matchPackageNames": ["ghcr.io/linuxserver/speedtest-tracker"],
+      "description": "LinuxServer tags (v1.14.7-ls165) aren't semver -- without an explicit versioning scheme, Renovate's default docker versioning would silently ignore or missort them and never propose updates. Applies to both the Dockerfile manager and the build.yaml custom manager.",
+      "versioning": "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-ls(?<build>\\d+)$",
+      "groupName": "speedtest-tracker upstream image",
+      "commitMessageTopic": "Speedtest Tracker upstream image",
+      "prBodyNotes": [
+        "**Merging this PR is all that's needed:** the `auto-release.yml` workflow then bumps `speedtest-tracker/config.yaml`'s version to `<new-tag>-addon.1`, prepends a CHANGELOG entry, creates the GitHub Release, and dispatches the image build automatically."
       ]
     }
   ]

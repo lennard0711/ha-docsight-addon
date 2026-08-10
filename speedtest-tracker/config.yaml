@@ -1,0 +1,51 @@
+---
+slug: speedtest-tracker
+name: "Speedtest Tracker"
+description: >-
+  Self-hosted internet performance tracking: scheduled Ookla speedtests
+  with history, charts, and alerts. Unofficial community wrapper around
+  the LinuxServer.io speedtest-tracker image.
+url: "https://github.com/alexjustesen/speedtest-tracker"
+version: "v1.14.7-ls165-addon.1"
+arch:
+  - aarch64
+  - amd64
+image: "ghcr.io/lennard0711/speedtest-tracker"
+startup: services
+boot: auto
+# s6-overlay v3 (this image's init system) refuses to start unless it is
+# literally PID 1 inside the container -- Supervisor's own init would sit
+# in front of it otherwise.
+init: false
+ports:
+  80/tcp: 8087
+ports_description:
+  80/tcp: "Speedtest Tracker web UI"
+# Speedtest Tracker's persistent state (SQLite DB, .env, logs) lives at
+# /config, which the upstream image declares as a VOLUME. Redirecting the
+# add-on's own persistent data volume there (instead of the default
+# /data) makes it survive image updates via Supervisor's normal mount,
+# rather than a symlink that Docker's anonymous-volume behavior for
+# VOLUME-declared paths could silently override.
+map:
+  - type: data
+    path: /config
+    read_only: false
+watchdog: "http://[HOST]:[PORT:80]/api/healthcheck"
+webui: "http://[HOST]:[PORT:80]/"
+options:
+  app_url: "http://homeassistant.local:8087"
+  timezone: "Etc/UTC"
+  admin_name: "Admin"
+  admin_email: "admin@example.com"
+  admin_password: ""
+  speedtest_schedule: "0 */6 * * *"
+  speedtest_servers: ""
+schema:
+  app_url: "url"
+  timezone: "str"
+  admin_name: "str"
+  admin_email: "email"
+  admin_password: "password"
+  speedtest_schedule: "str"
+  speedtest_servers: "str"
