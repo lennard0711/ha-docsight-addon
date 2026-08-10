@@ -6,7 +6,7 @@
 # BUILD_FROM is injected by the Home Assistant builder from build.yaml.
 # The upstream image is itself a multi-arch manifest (amd64, aarch64), so
 # both archs point at the same tag.
-ARG BUILD_FROM=ghcr.io/linuxserver/speedtest-tracker:v1.14.7-ls165
+ARG BUILD_FROM=ghcr.io/linuxserver/speedtest-tracker:v1.14.7-ls166
 FROM ${BUILD_FROM}
 
 COPY run.sh /run.sh
