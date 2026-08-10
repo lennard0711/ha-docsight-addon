@@ -147,14 +147,17 @@ jobs:
 
       - name: Verify APP_KEY persists across a restart
         run: |
-          key_before="$(cat /tmp/speedtest-tracker-data/.app_key)"
+          # run.sh chmod 600's the key file, owned by the container's own
+          # user -- read it via docker exec (root), not the host bind-mount
+          # path directly, which the CI runner's own user can't access.
+          key_before="$(docker exec speedtest-tracker-smoke cat /config/.app_key)"
           docker restart speedtest-tracker-smoke
           for i in $(seq 1 30); do
             curl -fs http://localhost:8087/api/healthcheck && break
             sleep 2
             if [ "$i" = 30 ]; then echo "::error::never became healthy after restart"; docker logs speedtest-tracker-smoke; exit 1; fi
           done
-          key_after="$(cat /tmp/speedtest-tracker-data/.app_key)"
+          key_after="$(docker exec speedtest-tracker-smoke cat /config/.app_key)"
           if [ "$key_before" != "$key_after" ]; then
             echo "::error::APP_KEY changed across a restart -- would break existing encrypted data"
             exit 1
