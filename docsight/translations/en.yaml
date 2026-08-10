@@ -1,4 +1,11 @@
 configuration:
+  web_ui:
+    name: Web UI access
+    description: >-
+      "ingress" serves the UI through the Home Assistant sidebar (enable
+      "Show in sidebar" on the add-on page). "direct" serves it on port
+      8765 instead. The two are mutually exclusive -- with ingress active,
+      direct port access shows broken links, and vice versa.
   modem_type:
     name: Modem type
     description: >-

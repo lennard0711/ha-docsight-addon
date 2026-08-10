@@ -30,6 +30,7 @@ To avoid that trap, this add-on only exposes options for settings that:
 
 | Option | Purpose |
 |---|---|
+| `web_ui` | `ingress` (default) serves the UI through the Home Assistant sidebar; `direct` serves it on port 8765. Mutually exclusive -- see below |
 | `modem_type` | Which modem driver to use (see the dropdown for the full list) |
 | `modem_url` | Base URL of your modem's admin/diagnostic interface |
 | `modem_user` / `modem_password` | Modem admin credentials, if required |
@@ -45,6 +46,21 @@ Everything else -- notifications (webhook/Apprise/push), Smart Capture,
 interface language, theme, ISP name, timezone, snapshot time, disabled
 modules -- has **no environment variable in DOCSight at all**, so setting it
 in the UI is safe and persists normally across add-on restarts.
+
+## Sidebar (Ingress) vs. direct port access
+
+With `web_ui: ingress` (the default), open DOCSight from the Home
+Assistant sidebar -- enable **Show in sidebar** on the add-on's info page.
+Access is then protected by your Home Assistant login; DOCSight's own
+`admin_password` still applies on top and is not connected to your HA
+account.
+
+The two modes are mutually exclusive: DOCSight generates every URL for
+exactly one mount point. In ingress mode, opening `http://<host>:8765`
+directly shows a page whose links and assets point at the ingress path
+and go nowhere. If you access DOCSight directly (or through your own
+reverse proxy), set `web_ui: direct` -- the sidebar entry then stops
+working instead.
 
 ## Why `host_network: true`
 

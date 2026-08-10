@@ -26,11 +26,18 @@ ports:
   8765/tcp: 8765
 ports_description:
   8765/tcp: "DOCSight web UI (only used for reference; with host_network the port is bound directly on the host)"
+# Sidebar access via Home Assistant Ingress. DOCSight's BASE_PATH support
+# makes URL generation ingress- OR direct-access-exclusive, so run.sh
+# only activates it when the web_ui option is "ingress" (the default).
+ingress: true
+ingress_port: 8765
+panel_icon: mdi:router-network
 # DOCSight's scheduled backups persist via a /data symlink set up in the
 # Dockerfile -- no `map: backup` needed here. See DOCS.md.
 watchdog: "http://[HOST]:[PORT:8765]/health"
 webui: "http://[HOST]:[PORT:8765]/"
 options:
+  web_ui: "ingress"
   modem_type: "fritzbox"
   modem_url: "http://192.168.178.1"
   modem_user: ""
@@ -44,6 +51,7 @@ options:
   admin_password: ""
   demo_mode: false
 schema:
+  web_ui: "list(ingress|direct)"
   modem_type: "list(fritzbox|tc4400|ultrahub7|vodafone_station|ch7465|ch7465_play|cm1000|cm3000|cm3500|surfboard|sb6141|sb6183|sb6190|cm8200|hitron|hitron_coda_4680|sagemcom|f3896lg|sercom_dm1000|cgm4981|generic)"
   modem_url: "url"
   modem_user: "str"

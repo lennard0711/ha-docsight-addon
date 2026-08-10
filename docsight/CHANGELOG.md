@@ -1,5 +1,13 @@
 # Changelog
 
+## UNRELEASED (will ship as <new-upstream-tag>-addon.2 once upstream tags the ingress fix)
+
+- Home Assistant sidebar support via Ingress: new `web_ui` option,
+  `ingress` (default) serves the UI through the sidebar, `direct` keeps
+  the previous port-8765 behavior. The modes are mutually exclusive --
+  DOCSight renders URLs for exactly one mount point. Requires the
+  upstream release containing itsDNNS/docsight#783.
+
 ## v2026-08-07.1-addon.7
 
 - Zero-config MQTT: with the default broker host and no credentials set,
