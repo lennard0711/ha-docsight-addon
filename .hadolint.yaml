@@ -1,0 +1,9 @@
+---
+ignored:
+  # DL3006: BUILD_FROM is an ARG-provided base image (Home Assistant
+  # builder convention) -- hadolint can't see its tag.
+  - DL3006
+  # DL3008: apt package versions are deliberately unpinned. Renovate
+  # doesn't manage apt pins, and stale pins break builds when Debian
+  # rotates point releases out of the archive.
+  - DL3008

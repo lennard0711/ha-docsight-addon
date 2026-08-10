@@ -6,13 +6,16 @@ description: >-
   with history, charts, and alerts. Unofficial community wrapper around
   the LinuxServer.io speedtest-tracker image.
 url: "https://github.com/alexjustesen/speedtest-tracker"
-version: "v1.14.7-ls165-addon.1"
+version: "v1.14.7-ls165-addon.2"
 arch:
   - aarch64
   - amd64
 image: "ghcr.io/lennard0711/speedtest-tracker"
 startup: services
 boot: auto
+# Stop briefly during Home Assistant backups so the SQLite database is
+# captured in a consistent state.
+backup: cold
 # s6-overlay v3 (this image's init system) refuses to start unless it is
 # literally PID 1 inside the container -- Supervisor's own init would sit
 # in front of it otherwise.

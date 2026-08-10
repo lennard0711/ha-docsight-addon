@@ -24,17 +24,22 @@ configuration:
   mqtt_host:
     name: MQTT broker host
     description: >-
-      Hostname of your MQTT broker. Defaults to the official Mosquitto
-      add-on (core-mosquitto). Leave blank to disable MQTT.
+      Hostname of your MQTT broker. With the default (core-mosquitto) and
+      no credentials set, connection details are fetched automatically from
+      the Mosquitto add-on. Leave blank to disable MQTT.
   mqtt_port:
     name: MQTT broker port
     description: Port of your MQTT broker.
   mqtt_user:
     name: MQTT username
-    description: Username for the MQTT broker, if required.
+    description: >-
+      Username for the MQTT broker. Leave blank (along with the password)
+      to auto-configure from the Mosquitto add-on.
   mqtt_password:
     name: MQTT password
-    description: Password for the MQTT broker, if required.
+    description: >-
+      Password for the MQTT broker. Leave blank (along with the username)
+      to auto-configure from the Mosquitto add-on.
   admin_password:
     name: DOCSight admin password
     description: Login password for DOCSight's own web UI.

@@ -1,0 +1,32 @@
+name: Lint
+
+# hadolint checks the Dockerfiles (rule exceptions live in .hadolint.yaml),
+# shellcheck the startup scripts. shellcheck is preinstalled on the runner;
+# hadolint runs from its official image, pinned by version tag.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: hadolint (Dockerfiles)
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo hadolint/hadolint:v2.15.1 \
+            hadolint docsight/Dockerfile speedtest-tracker/Dockerfile
+
+      - name: shellcheck (startup scripts)
+        run: shellcheck docsight/run.sh speedtest-tracker/run.sh

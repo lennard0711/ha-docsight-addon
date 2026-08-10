@@ -1,33 +1,48 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 CONFIG=/data/options.json
 
-# Only these bootstrap options are exported. DOCSight resolves each key as
-# env var > config.json > default on every read, so anything set here
-# always overrides the same setting in DOCSight's own /settings UI.
-# Everything else DOCSight offers (theme, language, notifications, Smart
-# Capture, ISP name, timezone, ...) has no env var equivalent and is safe
-# to configure there instead. See DOCS.md.
-export MODEM_TYPE=$(jq -r '.modem_type' "$CONFIG")
-export MODEM_URL=$(jq -r '.modem_url' "$CONFIG")
-export MODEM_USER=$(jq -r '.modem_user' "$CONFIG")
-export MODEM_PASSWORD=$(jq -r '.modem_password' "$CONFIG")
-export POLL_INTERVAL=$(jq -r '.poll_interval' "$CONFIG")
-export LOG_LEVEL=$(jq -r '.log_level' "$CONFIG")
-export MQTT_HOST=$(jq -r '.mqtt_host' "$CONFIG")
-export MQTT_PORT=$(jq -r '.mqtt_port' "$CONFIG")
-export MQTT_USER=$(jq -r '.mqtt_user' "$CONFIG")
-export MQTT_PASSWORD=$(jq -r '.mqtt_password' "$CONFIG")
-export ADMIN_PASSWORD=$(jq -r '.admin_password' "$CONFIG")
-export DEMO_MODE=$(jq -r '.demo_mode' "$CONFIG")
+# jq's `//` operator would also replace a legitimate `false`, so map only
+# null to "", and stringify numbers/booleans for the environment.
+opt() {
+  jq -r --arg k "$1" '.[$k] | if . == null then "" else tostring end' "$CONFIG"
+}
 
-# /data/backups needs to exist and be owned by appuser before DOCSight
-# starts, so its scheduled backups (symlinked to /backup in the Dockerfile)
-# can be written on the very first run.
+MODEM_TYPE="$(opt modem_type)"
+MODEM_URL="$(opt modem_url)"
+MODEM_USER="$(opt modem_user)"
+MODEM_PASSWORD="$(opt modem_password)"
+POLL_INTERVAL="$(opt poll_interval)"
+LOG_LEVEL="$(opt log_level)"
+MQTT_HOST="$(opt mqtt_host)"
+MQTT_PORT="$(opt mqtt_port)"
+MQTT_USER="$(opt mqtt_user)"
+MQTT_PASSWORD="$(opt mqtt_password)"
+ADMIN_PASSWORD="$(opt admin_password)"
+DEMO_MODE="$(opt demo_mode)"
+
+# Zero-config MQTT: with the default broker host and no credentials set,
+# fetch connection details from the Supervisor's MQTT service (provided by
+# e.g. the Mosquitto add-on). Explicitly configured values always win, and
+# a blank mqtt_host still disables MQTT entirely.
+if [ "$MQTT_HOST" = "core-mosquitto" ] && [ -z "$MQTT_USER" ] && [ -z "$MQTT_PASSWORD" ] \
+    && [ -n "${SUPERVISOR_TOKEN:-}" ]; then
+  if svc="$(curl -fsS -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/services/mqtt 2>/dev/null)"; then
+    MQTT_HOST="$(printf '%s' "$svc" | jq -r '.data.host // empty')"
+    MQTT_PORT="$(printf '%s' "$svc" | jq -r '.data.port // empty')"
+    MQTT_USER="$(printf '%s' "$svc" | jq -r '.data.username // empty')"
+    MQTT_PASSWORD="$(printf '%s' "$svc" | jq -r '.data.password // empty')"
+    echo "[docsight] MQTT auto-configured from the Supervisor MQTT service (host: ${MQTT_HOST})"
+  else
+    echo "[docsight] No Supervisor MQTT service available -- using configured MQTT options as-is"
+  fi
+fi
+
+export MODEM_TYPE MODEM_URL MODEM_USER MODEM_PASSWORD POLL_INTERVAL LOG_LEVEL \
+  MQTT_HOST MQTT_PORT MQTT_USER MQTT_PASSWORD ADMIN_PASSWORD DEMO_MODE
+
 mkdir -p /data/backups
 chown appuser:appuser /data/backups 2>/dev/null || true
 
-# Hand off to DOCSight's own entrypoint, which drops root privileges via
-# gosu before starting the app.
 exec /entrypoint.sh "$@"

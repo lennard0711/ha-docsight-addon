@@ -20,11 +20,20 @@ on:
       - "speedtest-tracker/**"
       - ".github/workflows/smoke-test.yml"
 
+permissions:
+  contents: read
+
+# A newer push supersedes any still-running smoke test for the same ref.
+concurrency:
+  group: smoke-test-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docsight-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build image (amd64, no push)
         run: docker build -t docsight-smoke:test docsight
@@ -95,8 +104,9 @@ jobs:
 
   speedtest-tracker-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Build image (amd64, no push)
         run: docker build -t speedtest-tracker-smoke:test speedtest-tracker

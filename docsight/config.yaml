@@ -5,13 +5,20 @@ description: >-
   Self-hosted DOCSIS evidence system for proving cable signal problems and
   bad ISP performance. Unofficial community wrapper around itsDNNS/docsight.
 url: "https://github.com/itsDNNS/docsight"
-version: "v2026-08-07.1-addon.6"
+version: "v2026-08-07.1-addon.7"
 arch:
   - aarch64
   - amd64
 image: "ghcr.io/lennard0711/docsight"
 startup: services
 boot: auto
+# Stop briefly during Home Assistant backups so the SQLite history
+# database is captured in a consistent state.
+backup: cold
+# Lets run.sh fetch broker credentials from the Supervisor's MQTT service
+# (provided by e.g. the Mosquitto add-on) when none are configured.
+services:
+  - mqtt:want
 # DOCSIS modems commonly expose their diagnostic UI on a separate subnet
 # (e.g. 192.168.100.1) that only the host's network stack can reach.
 host_network: true

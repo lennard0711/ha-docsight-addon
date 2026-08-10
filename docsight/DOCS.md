@@ -35,7 +35,7 @@ To avoid that trap, this add-on only exposes options for settings that:
 | `modem_user` / `modem_password` | Modem admin credentials, if required |
 | `poll_interval` | Seconds between modem polls |
 | `log_level` | Container log verbosity |
-| `mqtt_host` / `mqtt_port` / `mqtt_user` / `mqtt_password` | MQTT broker for Home Assistant integration (defaults target the official Mosquitto add-on, `core-mosquitto`) |
+| `mqtt_host` / `mqtt_port` / `mqtt_user` / `mqtt_password` | MQTT broker for Home Assistant integration. **Usually nothing to configure:** with the default host and no credentials set, the add-on fetches connection details automatically from the Mosquitto add-on via the Supervisor. Fill these in only for an external broker; leave `mqtt_host` blank to disable MQTT |
 | `admin_password` | DOCSight's own admin login password |
 | `demo_mode` | Runs DOCSight with 9 months of synthetic demo data instead of polling a real modem |
 
@@ -84,8 +84,11 @@ on HAOS (via the OS-level SSH add-on) that the modem's subnet (e.g.
 from a separate VLAN or a router downstream of the modem.
 
 **MQTT not publishing:** confirm the broker add-on (e.g. Mosquitto) is
-running and that `mqtt_user`/`mqtt_password` match a valid Mosquitto user --
-leave `mqtt_host` blank if you don't want MQTT enabled at all.
+running. With the default `mqtt_host` and blank credentials, the add-on
+auto-configures itself from the Mosquitto add-on -- the add-on log shows
+whether that worked at startup. If you configured credentials manually,
+they must match a valid broker user. Leave `mqtt_host` blank if you don't
+want MQTT enabled at all.
 
 **Cleared `mqtt_host` but MQTT is still connecting:** an empty add-on option
 means the environment variable is unset, and DOCSight then falls back to

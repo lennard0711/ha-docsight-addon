@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 # The add-on's persistent data volume is mounted at /config (see
 # config.yaml's map entry), not the usual /data -- Supervisor still drops
 # options.json into the same physical directory either way.
 CONFIG=/config/options.json
 KEY_FILE=/config/.app_key
+
+# jq's `//` operator would also replace a legitimate `false`, so map only
+# null to "", and stringify numbers/booleans for the environment.
+opt() {
+  jq -r --arg k "$1" '.[$k] | if . == null then "" else tostring end' "$CONFIG"
+}
 
 # APP_KEY encrypts stored data and has no default; Speedtest Tracker halts
 # on startup if it's missing. Generate one on first run and persist it so
@@ -17,17 +23,20 @@ if [ ! -f "$KEY_FILE" ]; then
   echo "base64:$(openssl rand -base64 32)" > "$KEY_FILE"
   chmod 600 "$KEY_FILE"
 fi
-export APP_KEY=$(cat "$KEY_FILE")
+APP_KEY="$(cat "$KEY_FILE")"
 
-export APP_URL=$(jq -r '.app_url' "$CONFIG")
-export TZ=$(jq -r '.timezone' "$CONFIG")
-export DISPLAY_TIMEZONE=$(jq -r '.timezone' "$CONFIG")
-export ADMIN_NAME=$(jq -r '.admin_name' "$CONFIG")
-export ADMIN_EMAIL=$(jq -r '.admin_email' "$CONFIG")
-export ADMIN_PASSWORD=$(jq -r '.admin_password' "$CONFIG")
-export SPEEDTEST_SCHEDULE=$(jq -r '.speedtest_schedule' "$CONFIG")
-export SPEEDTEST_SERVERS=$(jq -r '.speedtest_servers' "$CONFIG")
-export DB_CONNECTION=sqlite
+APP_URL="$(opt app_url)"
+TZ="$(opt timezone)"
+DISPLAY_TIMEZONE="$TZ"
+ADMIN_NAME="$(opt admin_name)"
+ADMIN_EMAIL="$(opt admin_email)"
+ADMIN_PASSWORD="$(opt admin_password)"
+SPEEDTEST_SCHEDULE="$(opt speedtest_schedule)"
+SPEEDTEST_SERVERS="$(opt speedtest_servers)"
+DB_CONNECTION=sqlite
+
+export APP_KEY APP_URL TZ DISPLAY_TIMEZONE ADMIN_NAME ADMIN_EMAIL ADMIN_PASSWORD \
+  SPEEDTEST_SCHEDULE SPEEDTEST_SERVERS DB_CONNECTION
 
 # ADMIN_* only take effect once, in the initial database migration that
 # creates the admin user -- changing them later has no effect. If this is

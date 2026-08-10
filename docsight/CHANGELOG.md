@@ -1,5 +1,15 @@
 # Changelog
 
+## v2026-08-07.1-addon.7
+
+- Zero-config MQTT: with the default broker host and no credentials set,
+  connection details are now fetched automatically from the Mosquitto
+  add-on via the Supervisor's MQTT service. Manually configured values
+  still win, and a blank `mqtt_host` still disables MQTT.
+- Home Assistant backups now stop the add-on briefly (`backup: cold`) so
+  the SQLite history database is captured in a consistent state.
+- Hardened the startup script (strict shell mode, safer option parsing).
+
 ## v2026-08-07.1-addon.6
 
 - Housekeeping release, no functional changes to DOCSight itself:

@@ -11,8 +11,10 @@
 ARG BUILD_FROM=ghcr.io/itsdnns/docsight:v2026-08-07.1
 FROM ${BUILD_FROM}
 
+# jq parses options.json; curl queries the Supervisor API (MQTT service
+# auto-configuration).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends jq \
+    && apt-get install -y --no-install-recommends jq curl \
     && rm -rf /var/lib/apt/lists/*
 
 # DOCSight's scheduled backup feature writes to /backup by default, which

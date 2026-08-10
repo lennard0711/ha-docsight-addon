@@ -41,6 +41,10 @@ database options are exposed). Its database, encryption key, and logs
 live in the add-on's own persistent storage, so they survive add-on
 updates and restarts.
 
+During Home Assistant backups the add-on is stopped for a few seconds
+(`backup: cold`) so the SQLite database is captured in a consistent
+state; it starts again automatically afterwards.
+
 ## Troubleshooting
 
 **Forgot the admin password:** reset it via the app's own console command.
