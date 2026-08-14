@@ -6,7 +6,7 @@ description: >-
   with history, charts, and alerts. Unofficial community wrapper around
   the LinuxServer.io speedtest-tracker image.
 url: "https://github.com/alexjustesen/speedtest-tracker"
-version: "v1.14.7-ls165-addon.2"
+version: "v1.14.7-ls166-addon.1"
 arch:
   - aarch64
   - amd64

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.14.7-ls166-addon.1
+
+- Update to upstream `v1.14.7-ls166` (automated release).
+
 ## v1.14.7-ls165-addon.2
 
 - Home Assistant backups now stop the add-on briefly (`backup: cold`) so
