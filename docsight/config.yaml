@@ -5,7 +5,7 @@ description: >-
   Self-hosted DOCSIS evidence system for proving cable signal problems and
   bad ISP performance. Unofficial community wrapper around itsDNNS/docsight.
 url: "https://github.com/itsDNNS/docsight"
-version: "v2026-08-07.1-addon.7"
+version: "v2026-08-13.1-addon.1"
 arch:
   - aarch64
   - amd64

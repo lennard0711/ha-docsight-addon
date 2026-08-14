@@ -3,10 +3,10 @@
 # Assistant base image. It's a multi-arch manifest (amd64, aarch64,
 # armv7), so both architectures point at the same tag.
 build_from:
-  aarch64: "ghcr.io/itsdnns/docsight:v2026-08-07.1"
-  amd64: "ghcr.io/itsdnns/docsight:v2026-08-07.1"
+  aarch64: "ghcr.io/itsdnns/docsight:v2026-08-13.1"
+  amd64: "ghcr.io/itsdnns/docsight:v2026-08-13.1"
 args:
-  BUILD_FROM: "ghcr.io/itsdnns/docsight:v2026-08-07.1"
+  BUILD_FROM: "ghcr.io/itsdnns/docsight:v2026-08-13.1"
 labels:
   org.opencontainers.image.title: "DOCSight"
   org.opencontainers.image.description: "Unofficial Home Assistant add-on wrapper for itsDNNS/docsight"

@@ -1,12 +1,17 @@
 # Changelog
 
-## UNRELEASED (will ship as <new-upstream-tag>-addon.2 once upstream tags the ingress fix)
+## v2026-08-13.1-addon.1
 
+- Update to upstream DOCSight `v2026-08-13.1`, which adds URL path-prefix
+  support (itsDNNS/docsight#783) plus module static-path hardening
+  (#784) and report-period fixes.
 - Home Assistant sidebar support via Ingress: new `web_ui` option,
   `ingress` (default) serves the UI through the sidebar, `direct` keeps
   the previous port-8765 behavior. The modes are mutually exclusive --
-  DOCSight renders URLs for exactly one mount point. Requires the
-  upstream release containing itsDNNS/docsight#783.
+  DOCSight renders URLs for exactly one mount point.
+
+  **If you access DOCSight directly on port 8765** (bookmark, your own
+  reverse proxy), set `web_ui` to `direct` after updating.
 
 ## v2026-08-07.1-addon.7
 

@@ -23,13 +23,17 @@ MQTT_PASSWORD="$(opt mqtt_password)"
 ADMIN_PASSWORD="$(opt admin_password)"
 DEMO_MODE="$(opt demo_mode)"
 
+# Both Supervisor lookups below are bounded by curl timeouts: an
+# unreachable or hung Supervisor API must never block container startup,
+# since the add-on can run perfectly well without either lookup.
+#
 # Zero-config MQTT: with the default broker host and no credentials set,
 # fetch connection details from the Supervisor's MQTT service (provided by
 # e.g. the Mosquitto add-on). Explicitly configured values always win, and
 # a blank mqtt_host still disables MQTT entirely.
 if [ "$MQTT_HOST" = "core-mosquitto" ] && [ -z "$MQTT_USER" ] && [ -z "$MQTT_PASSWORD" ] \
     && [ -n "${SUPERVISOR_TOKEN:-}" ]; then
-  if svc="$(curl -fsS -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/services/mqtt 2>/dev/null)"; then
+  if svc="$(curl -fsS --connect-timeout 5 --max-time 10 -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/services/mqtt 2>/dev/null)"; then
     MQTT_HOST="$(printf '%s' "$svc" | jq -r '.data.host // empty')"
     MQTT_PORT="$(printf '%s' "$svc" | jq -r '.data.port // empty')"
     MQTT_USER="$(printf '%s' "$svc" | jq -r '.data.username // empty')"
@@ -46,8 +50,8 @@ fi
 # port-8765 browsing unusable -- that's why this is an either/or option.
 # Any failure falls back to direct mode so the add-on always starts.
 if [ "$WEB_UI" = "ingress" ] && [ -n "${SUPERVISOR_TOKEN:-}" ]; then
-  info="$(curl -fsS -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/addons/self/info 2>/dev/null)" \
-    || info="$(curl -fsS -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/apps/self/info 2>/dev/null)" \
+  info="$(curl -fsS --connect-timeout 5 --max-time 10 -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/addons/self/info 2>/dev/null)" \
+    || info="$(curl -fsS --connect-timeout 5 --max-time 10 -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" http://supervisor/apps/self/info 2>/dev/null)" \
     || info=""
   entry="$(printf '%s' "$info" | jq -r '.data.ingress_entry // empty' 2>/dev/null || true)"
   if [ -n "$entry" ]; then

@@ -8,7 +8,7 @@
 # BUILD_FROM is injected by the Home Assistant builder from build.yaml.
 # aarch64 and amd64 point at the same tag because the upstream image is
 # itself a multi-arch manifest list; buildx picks the right platform.
-ARG BUILD_FROM=ghcr.io/itsdnns/docsight:v2026-08-07.1
+ARG BUILD_FROM=ghcr.io/itsdnns/docsight:v2026-08-13.1
 FROM ${BUILD_FROM}
 
 # jq parses options.json; curl queries the Supervisor API (MQTT service
