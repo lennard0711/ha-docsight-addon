@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.14.8-ls168-addon.1
+
+- Update to upstream `v1.14.8-ls168` (automated release).
+
 ## v1.14.7-ls166-addon.1
 
 - Update to upstream `v1.14.7-ls166` (automated release).
