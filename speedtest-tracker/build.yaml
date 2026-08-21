@@ -3,10 +3,10 @@
 # multi-arch manifest (amd64, aarch64), so both architectures point at
 # the same tag.
 build_from:
-  aarch64: "ghcr.io/linuxserver/speedtest-tracker:v1.14.8-ls168"
-  amd64: "ghcr.io/linuxserver/speedtest-tracker:v1.14.8-ls168"
+  aarch64: "ghcr.io/linuxserver/speedtest-tracker:v1.15.0-ls169"
+  amd64: "ghcr.io/linuxserver/speedtest-tracker:v1.15.0-ls169"
 args:
-  BUILD_FROM: "ghcr.io/linuxserver/speedtest-tracker:v1.14.8-ls168"
+  BUILD_FROM: "ghcr.io/linuxserver/speedtest-tracker:v1.15.0-ls169"
 labels:
   org.opencontainers.image.title: "Speedtest Tracker"
   org.opencontainers.image.description: "Unofficial Home Assistant add-on wrapper for alexjustesen/speedtest-tracker (LinuxServer.io build)"
