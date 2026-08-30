@@ -1,5 +1,9 @@
 # Changelog
 
+## v2026-08-30.1-addon.1
+
+- Update to upstream `v2026-08-30.1` (automated release).
+
 ## v2026-08-21.1-addon.1
 
 - Update to upstream `v2026-08-21.1` (automated release).
