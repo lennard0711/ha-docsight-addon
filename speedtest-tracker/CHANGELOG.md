@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.15.0-ls172-addon.1
+
+- Update to upstream `v1.15.0-ls172` (automated release).
+
 ## v1.15.0-ls171-addon.1
 
 - Update to upstream `v1.15.0-ls171` (automated release).
