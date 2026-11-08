@@ -25,8 +25,14 @@ name: Auto-release on upstream bump
 # GITHUB_TOKEN don't trigger other workflows' `release` events.
 #
 # Manual add-on-only releases (addon.N bumps without an upstream change)
-# are unaffected: the guard below skips whenever config.yaml's version
-# already matches the pinned upstream tag.
+# are unaffected on push: the guard below skips whenever config.yaml's
+# version already matches the pinned upstream tag.
+#
+# The workflow can also be started by hand (workflow_dispatch) for one
+# add-on: it then always releases the next <upstream>-addon.<N+1>, with the
+# upstream notes for the pinned tag. With dry_run (the default) it only
+# prints the version, notes and CHANGELOG diff in the job log and changes
+# nothing.
 #
 # Matrix jobs run one at a time (max-parallel: 1) so two add-ons bumped in
 # the same push can't race each other's commit+push.
@@ -39,6 +45,20 @@ on:
       - "docsight/build.yaml"
       - "speedtest-tracker/Dockerfile"
       - "speedtest-tracker/build.yaml"
+  workflow_dispatch:
+    inputs:
+      addon:
+        description: "Which add-on to release"
+        required: true
+        type: choice
+        options:
+          - docsight
+          - speedtest-tracker
+      dry_run:
+        description: "Only print what would be released (no commit, release or build)"
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -52,7 +72,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        addon: [docsight, speedtest-tracker]
+        addon: ${{ fromJson(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.addon) || '["docsight","speedtest-tracker"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -61,6 +81,7 @@ jobs:
         env:
           ADDON: ${{ matrix.addon }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
         run: |
           upstream=$(grep -oP '^ARG BUILD_FROM=.+:\K\S+$' "${ADDON}/Dockerfile")
           current=$(grep -oP '^version:\s*"\K[^"]+' "${ADDON}/config.yaml")
@@ -73,8 +94,15 @@ jobs:
             echo "upstream=${upstream}"
             echo "bump=false"
             echo "release_only=false"
+            echo "manual_rerelease=false"
           } >> "$GITHUB_OUTPUT"
-          if [[ "$current" != "${upstream}-addon."* ]]; then
+          if [ "$EVENT" = "workflow_dispatch" ] && [[ "$current" == "${upstream}-addon."* ]]; then
+            # Manual run for an already-released upstream tag: next addon.N.
+            n="${current##*-addon.}"
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+            echo "manual_rerelease=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=${upstream}-addon.$((n + 1))" >> "$GITHUB_OUTPUT"
+          elif [[ "$current" != "${upstream}-addon."* ]]; then
             echo "bump=true" >> "$GITHUB_OUTPUT"
             echo "new_version=${upstream}-addon.1" >> "$GITHUB_OUTPUT"
           elif [ "$current" = "${upstream}-addon.1" ] \
@@ -93,8 +121,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPSTREAM: ${{ steps.detect.outputs.upstream }}
           ADDON: ${{ matrix.addon }}
+          MANUAL: ${{ steps.detect.outputs.manual_rerelease }}
         run: |
           .github/scripts/release-notes.sh "$ADDON" "$UPSTREAM" > "$RUNNER_TEMP/notes.md"
+          if [ "$MANUAL" = "true" ]; then
+            { printf '%s\n\n' "_Re-release of the add-on with the upstream release notes (no upstream change)._"; cat "$RUNNER_TEMP/notes.md"; } > "$RUNNER_TEMP/notes.tmp"
+            mv "$RUNNER_TEMP/notes.tmp" "$RUNNER_TEMP/notes.md"
+          fi
           if [ "$ADDON" = "docsight" ]; then
             warning="$(.github/scripts/check-drivers.sh "$UPSTREAM")"
             if [ -n "$warning" ]; then
@@ -120,8 +153,16 @@ jobs:
           mv "$RUNNER_TEMP/changelog.md" "${ADDON}/CHANGELOG.md"
           git diff --stat
 
+      - name: Dry run -- show what would be committed
+        if: inputs.dry_run
+        env:
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+        run: |
+          echo "Dry run: would release ${ADDON:-${{ matrix.addon }}}/${NEW_VERSION} -- nothing is committed, released or built."
+          git diff
+
       - name: Commit and push
-        if: steps.detect.outputs.bump == 'true'
+        if: steps.detect.outputs.bump == 'true' && !inputs.dry_run
         env:
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
           ADDON: ${{ matrix.addon }}
@@ -134,7 +175,7 @@ jobs:
           git push
 
       - name: Create release and dispatch build
-        if: steps.detect.outputs.bump == 'true' || steps.detect.outputs.release_only == 'true'
+        if: (steps.detect.outputs.bump == 'true' || steps.detect.outputs.release_only == 'true') && !inputs.dry_run
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
