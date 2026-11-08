@@ -2,14 +2,20 @@
 # Warns about modem drivers upstream DOCSight registers that are missing
 # from the add-on's hardcoded `modem_type` schema in docsight/config.yaml.
 #
-# Usage: check-drivers.sh <upstream-tag>
+# Usage: check-drivers.sh [--list] <upstream-tag>
 #
 # Prints one warning line on stdout if there is a mismatch, nothing
-# otherwise. Always exits 0: if upstream's file can't be fetched or parsed
+# otherwise. With --list it prints just the missing driver names, one per
+# line (used by sync-drivers.sh). Always exits 0: if upstream's file can't be fetched or parsed
 # (sanity check below), it only logs to stderr -- a parser hiccup must not
 # block a release. DRIVERS_FILE overrides the download (used for tests).
 set -uo pipefail
 
+list_only=0
+if [ "${1:-}" = "--list" ]; then
+  list_only=1
+  shift
+fi
 tag="${1:?upstream tag}"
 config="${CONFIG:-docsight/config.yaml}"
 
@@ -39,7 +45,12 @@ if [ "$known" -lt 2 ]; then
   exit 0
 fi
 
-missing="$(printf '%s\n' "$upstream" | grep -vFxf <(printf '%s\n' "$schema") | paste -sd, - | sed 's/,/, /g')"
+missing_lines="$(printf '%s\n' "$upstream" | grep -vFxf <(printf '%s\n' "$schema"))"
+if [ "$list_only" = 1 ]; then
+  [ -z "$missing_lines" ] || printf '%s\n' "$missing_lines"
+  exit 0
+fi
+missing="$(printf '%s\n' "$missing_lines" | paste -sd, - | sed 's/,/, /g')"
 if [ -n "$missing" ]; then
   echo "> ⚠️ **New upstream modem drivers not yet selectable in \`modem_type\`:** ${missing}"
 fi
