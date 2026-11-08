@@ -29,4 +29,4 @@ jobs:
             hadolint docsight/Dockerfile speedtest-tracker/Dockerfile
 
       - name: shellcheck (startup scripts)
-        run: shellcheck docsight/run.sh speedtest-tracker/run.sh
+        run: shellcheck docsight/run.sh speedtest-tracker/run.sh .github/scripts/*.sh
