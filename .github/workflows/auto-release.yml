@@ -5,6 +5,17 @@ name: Auto-release on upstream bump
 # CHANGELOG entry, creates the GitHub release, and dispatches the build --
 # so merging the PR is the only manual step.
 #
+# The CHANGELOG entry (which Home Assistant shows in the add-on's update
+# dialog) and the GitHub release carry the upstream project's own release
+# notes, fetched by .github/scripts/release-notes.sh; if that fails they
+# fall back to a one-line "Update to upstream" message. For docsight,
+# .github/scripts/check-drivers.sh also warns about modem drivers missing
+# from the modem_type schema.
+#
+# Every step is idempotent: if a run fails after the bump was pushed (e.g.
+# creating the release), re-running the job creates just the missing
+# release and build.
+#
 # The release tag is "<addon-slug>/<version>" (e.g.
 # "docsight/v2026-08-07.1-addon.7") so build.yml knows which add-on and
 # image a given release is for -- each add-on in this repo has its own
@@ -49,6 +60,7 @@ jobs:
         id: detect
         env:
           ADDON: ${{ matrix.addon }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           upstream=$(grep -oP '^ARG BUILD_FROM=.+:\K\S+$' "${ADDON}/Dockerfile")
           current=$(grep -oP '^version:\s*"\K[^"]+' "${ADDON}/config.yaml")
@@ -57,29 +69,55 @@ jobs:
             echo "::error::Could not extract upstream tag or add-on version for ${ADDON}"
             exit 1
           fi
-          if [[ "$current" == "${upstream}-addon."* ]]; then
-            echo "Add-on version already tracks this upstream tag -- nothing to do."
-            echo "bump=false" >> "$GITHUB_OUTPUT"
-          else
+          {
+            echo "upstream=${upstream}"
+            echo "bump=false"
+            echo "release_only=false"
+          } >> "$GITHUB_OUTPUT"
+          if [[ "$current" != "${upstream}-addon."* ]]; then
             echo "bump=true" >> "$GITHUB_OUTPUT"
-            echo "upstream=${upstream}" >> "$GITHUB_OUTPUT"
             echo "new_version=${upstream}-addon.1" >> "$GITHUB_OUTPUT"
+          elif [ "$current" = "${upstream}-addon.1" ] \
+              && ! gh release view "${ADDON}/${current}" >/dev/null 2>&1; then
+            # A previous run bumped the version but never created the release.
+            echo "Version already bumped, but release ${ADDON}/${current} is missing -- creating it."
+            echo "release_only=true" >> "$GITHUB_OUTPUT"
+            echo "new_version=${current}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Add-on version already tracks this upstream tag -- nothing to do."
           fi
+
+      - name: Fetch upstream release notes
+        if: steps.detect.outputs.bump == 'true' || steps.detect.outputs.release_only == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSTREAM: ${{ steps.detect.outputs.upstream }}
+          ADDON: ${{ matrix.addon }}
+        run: |
+          .github/scripts/release-notes.sh "$ADDON" "$UPSTREAM" > "$RUNNER_TEMP/notes.md"
+          if [ "$ADDON" = "docsight" ]; then
+            warning="$(.github/scripts/check-drivers.sh "$UPSTREAM")"
+            if [ -n "$warning" ]; then
+              echo "::warning::${warning}"
+              { printf '%s\n\n' "$warning"; cat "$RUNNER_TEMP/notes.md"; } > "$RUNNER_TEMP/notes.tmp"
+              mv "$RUNNER_TEMP/notes.tmp" "$RUNNER_TEMP/notes.md"
+            fi
+          fi
+          cat "$RUNNER_TEMP/notes.md"
 
       - name: Bump config.yaml and CHANGELOG
         if: steps.detect.outputs.bump == 'true'
         env:
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
-          UPSTREAM: ${{ steps.detect.outputs.upstream }}
           ADDON: ${{ matrix.addon }}
         run: |
           sed -i "s|^version: \".*\"|version: \"${NEW_VERSION}\"|" "${ADDON}/config.yaml"
-          awk -v ver="$NEW_VERSION" -v up="$UPSTREAM" '
+          awk -v ver="$NEW_VERSION" -v nf="$RUNNER_TEMP/notes.md" '
             NR==1 { print; print ""; print "## " ver; print "";
-                    print "- Update to upstream `" up "` (automated release)."; next }
+                    while ((getline line < nf) > 0) print line; next }
             { print }
-          ' "${ADDON}/CHANGELOG.md" > /tmp/changelog.md
-          mv /tmp/changelog.md "${ADDON}/CHANGELOG.md"
+          ' "${ADDON}/CHANGELOG.md" > "$RUNNER_TEMP/changelog.md"
+          mv "$RUNNER_TEMP/changelog.md" "${ADDON}/CHANGELOG.md"
           git diff --stat
 
       - name: Commit and push
@@ -96,14 +134,13 @@ jobs:
           git push
 
       - name: Create release and dispatch build
-        if: steps.detect.outputs.bump == 'true'
+        if: steps.detect.outputs.bump == 'true' || steps.detect.outputs.release_only == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
-          UPSTREAM: ${{ steps.detect.outputs.upstream }}
           ADDON: ${{ matrix.addon }}
         run: |
           gh release create "${ADDON}/${NEW_VERSION}" \
             --title "${ADDON} ${NEW_VERSION}" \
-            --notes "Update to upstream ${UPSTREAM} (automated release)."
+            --notes-file "$RUNNER_TEMP/notes.md"
           gh workflow run build.yml -f addon="$ADDON" -f version="$NEW_VERSION"

@@ -47,14 +47,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - id: parse
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_ADDON: ${{ inputs.addon }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          tag="${{ github.event.release.tag_name }}"
-          if [ -n "$tag" ]; then
-            addon="${tag%%/*}"
-            version="${tag#*/}"
+          if [ -n "$RELEASE_TAG" ]; then
+            addon="${RELEASE_TAG%%/*}"
+            version="${RELEASE_TAG#*/}"
           else
-            addon="${{ inputs.addon }}"
-            version="${{ inputs.version }}"
+            addon="$INPUT_ADDON"
+            version="$INPUT_VERSION"
           fi
           echo "addon=$addon" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
