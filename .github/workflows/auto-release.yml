@@ -9,8 +9,10 @@ name: Auto-release on upstream bump
 # dialog) and the GitHub release carry the upstream project's own release
 # notes, fetched by .github/scripts/release-notes.sh; if that fails they
 # fall back to a one-line "Update to upstream" message. For docsight,
-# .github/scripts/check-drivers.sh also warns about modem drivers missing
-# from the modem_type schema.
+# .github/scripts/sync-drivers.sh also adds modem drivers that upstream
+# registers but the modem_type schema lacks to docsight/config.yaml (part
+# of the same version-bump commit) and mentions them in the notes; if the
+# edit can't be applied cleanly it is reverted and only a warning is added.
 #
 # Every step is idempotent: if a run fails after the bump was pushed (e.g.
 # creating the release), re-running the job creates just the missing
@@ -122,17 +124,20 @@ jobs:
           UPSTREAM: ${{ steps.detect.outputs.upstream }}
           ADDON: ${{ matrix.addon }}
           MANUAL: ${{ steps.detect.outputs.manual_rerelease }}
+          BUMP: ${{ steps.detect.outputs.bump }}
         run: |
           .github/scripts/release-notes.sh "$ADDON" "$UPSTREAM" > "$RUNNER_TEMP/notes.md"
           if [ "$MANUAL" = "true" ]; then
             { printf '%s\n\n' "_Re-release of the add-on with the upstream release notes (no upstream change)._"; cat "$RUNNER_TEMP/notes.md"; } > "$RUNNER_TEMP/notes.tmp"
             mv "$RUNNER_TEMP/notes.tmp" "$RUNNER_TEMP/notes.md"
           fi
-          if [ "$ADDON" = "docsight" ]; then
-            warning="$(.github/scripts/check-drivers.sh "$UPSTREAM")"
-            if [ -n "$warning" ]; then
-              echo "::warning::${warning}"
-              { printf '%s\n\n' "$warning"; cat "$RUNNER_TEMP/notes.md"; } > "$RUNNER_TEMP/notes.tmp"
+          # Only on a real bump: in release-only mode the version commit (and
+          # with it the schema sync) already happened in the earlier run.
+          if [ "$ADDON" = "docsight" ] && [ "$BUMP" = "true" ]; then
+            note="$(.github/scripts/sync-drivers.sh "$UPSTREAM")"
+            if [ -n "$note" ]; then
+              echo "::notice::${note}"
+              { printf '%s\n\n' "$note"; cat "$RUNNER_TEMP/notes.md"; } > "$RUNNER_TEMP/notes.tmp"
               mv "$RUNNER_TEMP/notes.tmp" "$RUNNER_TEMP/notes.md"
             fi
           fi

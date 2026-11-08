@@ -31,7 +31,7 @@
       "groupName": "docsight upstream image",
       "commitMessageTopic": "DOCSight upstream image",
       "prBodyNotes": [
-        "**Merging this PR is all that's needed:** the `auto-release.yml` workflow then bumps `docsight/config.yaml`'s version to `<new-tag>-addon.1`, prepends a CHANGELOG entry containing the upstream release notes, creates the GitHub Release, and dispatches the image build automatically. Newly registered modem drivers upstream are flagged with a warning in those notes -- the `modem_type` list in `docsight/config.yaml`'s schema is hardcoded and still needs new drivers added manually."
+        "**Merging this PR is all that's needed:** the `auto-release.yml` workflow then bumps `docsight/config.yaml`'s version to `<new-tag>-addon.1`, prepends a CHANGELOG entry containing the upstream release notes, creates the GitHub Release, and dispatches the image build automatically. Modem drivers newly registered upstream are added to the `modem_type` list in `docsight/config.yaml`'s schema automatically (and mentioned in the notes); if that edit can't be applied cleanly, a warning is added to the notes instead and the list needs a manual update."
       ]
     },
     {
