@@ -33,7 +33,7 @@ upstream="$(grep -E 'register[a-z_]*\(' "$src" \
 
 # Sanity check: a working parse must find at least two names we already
 # know. Otherwise the file format probably changed -- say nothing.
-known=$(printf '%s\n' "$upstream" | grep -Fxf <(printf '%s\n' "$schema") | wc -l)
+known=$(printf '%s\n' "$upstream" | grep -Fxcf <(printf '%s\n' "$schema"))
 if [ "$known" -lt 2 ]; then
   echo "check-drivers: could not recognise driver registrations upstream, skipping check" >&2
   exit 0
