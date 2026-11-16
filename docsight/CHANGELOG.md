@@ -1,5 +1,51 @@
 # Changelog
 
+## v2026-11-15.2-addon.1
+
+#### Important: DOCSight now always asks for an admin password
+
+Until now, a DOCSight installation without an admin password was open to everyone on the network, including its settings, stored modem passwords and backups. From this release on, DOCSight stays locked until an admin password is set (security advisory [GHSA-g3mq-xq73-rwr6](https://github.com/itsDNNS/docsight/security/advisories/GHSA-g3mq-xq73-rwr6)).
+
+**What you need to do after updating:**
+
+- **You already use an admin password:** nothing changes.
+- **You have no admin password:** open DOCSight in your browser within 15 minutes after the update. DOCSight shows "Set an admin password". Choose a password with at least 8 characters, and you are signed in again. Your settings and history stay as they are.
+- **You opened DOCSight later and it asks you to restart:** for your protection, the first password can only be set within 15 minutes after DOCSight starts. Restart the DOCSight container (for example `docker restart docsight`, or the restart button in Portainer, Unraid or Synology) and open DOCSight again.
+- **You deliberately run DOCSight without a password**, for example behind your own login proxy: set `AUTH_DISABLED=true`. DOCSight then stays open as before and shows a warning in the log, in Settings and in Doctor.
+
+Clearing the admin password in Settings no longer turns sign-in off; it is only possible when `AUTH_DISABLED=true` is set or in the Windows desktop app.
+
+The Windows desktop app and the demo mode need no password, because the desktop app only listens on your own computer.
+
+Restoring a backup now always requires signing in, also during the first setup. On a new installation you set the admin password first and can then restore your backup in the setup as before; afterwards, sign in with the admin password stored in the backup. If the backup comes from an installation without a password, DOCSight asks you to set one again.
+
+#### Special thanks
+
+- [@shravank75](https://github.com/shravank75) for responsibly reporting that installations without an admin password were open to everyone on the network ([GHSA-g3mq-xq73-rwr6](https://github.com/itsDNNS/docsight/security/advisories/GHSA-g3mq-xq73-rwr6)).
+
+#### Security fixes
+
+- DOCSight requires an admin password before it can be used. The first password is set in the browser within 15 minutes after start; `AUTH_DISABLED=true` keeps an installation open on purpose and is flagged in the log, in Settings and in Doctor. ([itsDNNS/docsight#1138](https://github.com/itsDNNS/docsight/pull/1138))
+- Restoring a backup always requires a signed-in admin, also before the modem is configured. ([itsDNNS/docsight#1138](https://github.com/itsDNNS/docsight/pull/1138))
+- Passwords that start like a stored hash (for example `scrypt:...`) are hashed instead of being saved as they are. ([itsDNNS/docsight#1138](https://github.com/itsDNNS/docsight/pull/1138))
+- New Doctor check `auth.admin_password` shows whether the installation is protected. ([itsDNNS/docsight#1138](https://github.com/itsDNNS/docsight/pull/1138))
+
+#### Container images
+
+- `ghcr.io/itsdnns/docsight:v2026-11-15.2`
+- `ghcr.io/itsdnns/docsight:stable`
+- `ghcr.io/itsdnns/docsight:latest`
+
+Use `stable` to follow releases only; `latest` also follows changes on `main`.
+
+#### Support the project
+
+If DOCSight helps you understand and document your connection, you can support its continued development through [Ko-fi](https://ko-fi.com/itsdnns), [GitHub Sponsors](https://github.com/sponsors/itsDNNS) or [PayPal](https://paypal.me/itsDNNS).
+
+**Full diff:** https://github.com/itsDNNS/docsight/compare/v2026-11-15.1...v2026-11-15.2
+
+[Upstream release notes](https://github.com/itsDNNS/docsight/releases/tag/v2026-11-15.2)
+
 ## v2026-11-02.1-addon.2
 
 > **Added modem types to the `modem_type` option (new upstream drivers, added automatically):** pyur_fast3896, sb8200_cbn
