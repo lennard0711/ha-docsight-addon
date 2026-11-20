@@ -1,5 +1,48 @@
 # Changelog
 
+## v2026-11-18.1-addon.1
+
+#### Important: API tokens are limited to what integrations need
+
+API tokens for Home Assistant, scripts and other integrations could do almost everything an admin can do, including downloading backups and restoring them. From this release on, a token can read data and make only the changes integrations need (security advisory [GHSA-45wf-5j92-r47x](https://github.com/itsDNNS/docsight/security/advisories/GHSA-45wf-5j92-r47x)).
+
+**What you need to do after updating:**
+
+- **Sign in again once.** DOCSight renews its session key during the update, so every browser is signed out one time.
+- **Integrations that only read data, trigger a poll or a speedtest, acknowledge events, or write journal entries and incidents** keep working as before.
+- **Scripts that use a token to delete entries, import files, upload attachments, change settings, run or restore backups, or manage modules and themes** now get `403 Session authentication required`. Do these in the browser. If your integration needs one of them, please open an issue.
+- **After restoring a backup on a new installation,** create new API tokens for your integrations. A restore keeps the tokens of the running installation, so a token you revoked cannot come back with an old backup.
+
+See the [API Reference](https://github.com/itsDNNS/docsight/wiki/API-Reference#authentication) for the full list of what a token can change.
+
+#### Special thanks
+
+- [@orshih6](https://github.com/orshih6) for responsibly reporting that an API token could reach backups and act as admin ([GHSA-45wf-5j92-r47x](https://github.com/itsDNNS/docsight/security/advisories/GHSA-45wf-5j92-r47x)).
+
+#### Security fixes
+
+- API tokens work on `/api/` routes only and can change data only where integrations need it; every other change needs a browser sign-in and is written to the audit log. ([itsDNNS/docsight#1145](https://github.com/itsDNNS/docsight/pull/1145))
+- Backups no longer contain the session signing key, and DOCSight renews the key once on update. ([itsDNNS/docsight#1145](https://github.com/itsDNNS/docsight/pull/1145))
+- Restoring a backup keeps the current API tokens and loads the restored encryption key right away instead of after a restart. ([itsDNNS/docsight#1145](https://github.com/itsDNNS/docsight/pull/1145))
+- Incident reports no longer load files or web addresses referenced inside an attachment. ([itsDNNS/docsight#1145](https://github.com/itsDNNS/docsight/pull/1145))
+- Restore errors no longer show internal error details. ([itsDNNS/docsight#1139](https://github.com/itsDNNS/docsight/pull/1139))
+
+#### Container images
+
+- `ghcr.io/itsdnns/docsight:v2026-11-18.1`
+- `ghcr.io/itsdnns/docsight:stable`
+- `ghcr.io/itsdnns/docsight:latest`
+
+Use `stable` to follow releases only; `latest` also follows changes on `main`.
+
+#### Support the project
+
+If DOCSight helps you understand and document your connection, you can support its continued development through [Ko-fi](https://ko-fi.com/itsdnns), [GitHub Sponsors](https://github.com/sponsors/itsDNNS) or [PayPal](https://paypal.me/itsDNNS).
+
+**Full diff:** https://github.com/itsDNNS/docsight/compare/v2026-11-15.2...v2026-11-18.1
+
+[Upstream release notes](https://github.com/itsDNNS/docsight/releases/tag/v2026-11-18.1)
+
 ## v2026-11-15.2-addon.1
 
 #### Important: DOCSight now always asks for an admin password
